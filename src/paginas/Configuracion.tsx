@@ -1,7 +1,7 @@
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-type PerfilFees = { clave: string; etiqueta: string; estado_tabla: string; seleccionable: boolean };
+type PerfilFees = { clave: string; etiqueta: string; estado_tabla: string; seleccionable: boolean; es_predeterminado: boolean };
 type Proveedor = { clave: string; nombre: string };
 type Ajustes = {
   perfil_fees_clave: string;
@@ -9,6 +9,9 @@ type Ajustes = {
   pago_unico_hnl: string;
   gastos_locales_referencia_min_hnl: string;
   gastos_locales_referencia_max_hnl: string;
+  gastos_locales_predeterminado_hnl: string;
+  papeleria_predeterminada_usd: string;
+  tipo_cambio_predeterminado_hnl_por_usd: string;
 };
 
 const AJUSTES_VACIOS: Ajustes = {
@@ -17,9 +20,13 @@ const AJUSTES_VACIOS: Ajustes = {
   pago_unico_hnl: '',
   gastos_locales_referencia_min_hnl: '',
   gastos_locales_referencia_max_hnl: '',
+  gastos_locales_predeterminado_hnl: '',
+  papeleria_predeterminada_usd: '',
+  tipo_cambio_predeterminado_hnl_por_usd: '',
 };
 
 const PATRON_MONTO = /^\d+(\.\d{1,4})?$/;
+const PATRON_TIPO_CAMBIO = /^\d+(\.\d{1,6})?$/;
 
 function aTexto(valor: unknown): string {
   return typeof valor === 'string' || typeof valor === 'number' ? String(valor) : '';
@@ -41,12 +48,12 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
   useEffect(() => {
     let vigente = true;
     void Promise.all([
-      supabase.from('fee_profiles').select('clave, etiqueta, estado_tabla, seleccionable').order('etiqueta'),
+      supabase.from('fee_profiles').select('clave, etiqueta, estado_tabla, seleccionable, es_predeterminado').order('etiqueta'),
       supabase.from('logistics_providers').select('clave, nombre').order('nombre'),
       supabase
         .from('user_settings')
         .select(
-          'perfil_fees_clave, proveedor_clave, pago_unico_hnl, gastos_locales_referencia_min_hnl, gastos_locales_referencia_max_hnl',
+          'perfil_fees_clave, proveedor_clave, pago_unico_hnl, gastos_locales_referencia_min_hnl, gastos_locales_referencia_max_hnl, gastos_locales_predeterminado_hnl, papeleria_predeterminada_usd, tipo_cambio_predeterminado_hnl_por_usd',
         )
         .maybeSingle(),
     ]).then(([resPerfiles, resProveedores, resAjustes]) => {
@@ -65,6 +72,9 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
           pago_unico_hnl: aTexto(fila.pago_unico_hnl),
           gastos_locales_referencia_min_hnl: aTexto(fila.gastos_locales_referencia_min_hnl),
           gastos_locales_referencia_max_hnl: aTexto(fila.gastos_locales_referencia_max_hnl),
+          gastos_locales_predeterminado_hnl: aTexto(fila.gastos_locales_predeterminado_hnl),
+          papeleria_predeterminada_usd: aTexto(fila.papeleria_predeterminada_usd),
+          tipo_cambio_predeterminado_hnl_por_usd: aTexto(fila.tipo_cambio_predeterminado_hnl_por_usd),
         });
       }
     });
@@ -78,9 +88,20 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
     setMensaje(null);
     setError(null);
 
-    const montos = [ajustes.pago_unico_hnl, ajustes.gastos_locales_referencia_min_hnl, ajustes.gastos_locales_referencia_max_hnl];
+    const montos = [
+      ajustes.pago_unico_hnl,
+      ajustes.gastos_locales_referencia_min_hnl,
+      ajustes.gastos_locales_referencia_max_hnl,
+      ajustes.gastos_locales_predeterminado_hnl,
+      ajustes.papeleria_predeterminada_usd,
+    ];
     if (montos.some((valor) => valor.trim() !== '' && !PATRON_MONTO.test(valor.trim()))) {
-      setError('Los montos en HNL deben ser números positivos, con hasta 4 decimales.');
+      setError('Los montos deben ser números positivos, con hasta 4 decimales.');
+      return;
+    }
+    const tipoCambio = ajustes.tipo_cambio_predeterminado_hnl_por_usd.trim();
+    if (tipoCambio !== '' && (!PATRON_TIPO_CAMBIO.test(tipoCambio) || Number(tipoCambio) <= 0)) {
+      setError('El tipo de cambio debe ser un número mayor que cero, con hasta 6 decimales.');
       return;
     }
 
@@ -93,19 +114,26 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
         pago_unico_hnl: aNulo(ajustes.pago_unico_hnl),
         gastos_locales_referencia_min_hnl: aNulo(ajustes.gastos_locales_referencia_min_hnl),
         gastos_locales_referencia_max_hnl: aNulo(ajustes.gastos_locales_referencia_max_hnl),
+        gastos_locales_predeterminado_hnl: aNulo(ajustes.gastos_locales_predeterminado_hnl),
+        papeleria_predeterminada_usd: aNulo(ajustes.papeleria_predeterminada_usd),
+        tipo_cambio_predeterminado_hnl_por_usd: aNulo(ajustes.tipo_cambio_predeterminado_hnl_por_usd),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'owner_id' },
     );
     setGuardando(false);
     if (fallo) {
-      setError('No se pudo guardar. Revise que el perfil, el proveedor y el rango de gastos sean válidos.');
+      setError(
+        'No se pudo guardar. Revise el perfil, el proveedor, los rangos de gastos y los valores predeterminados; los gastos locales y la papelería predeterminados no pueden quedar vacíos.',
+      );
       return;
     }
     setMensaje('Configuración guardada.');
   };
 
-  const perfilSeleccionado = perfiles?.find((perfil) => perfil.clave === ajustes.perfil_fees_clave);
+  const perfilPredeterminado = perfiles?.find((perfil) => perfil.es_predeterminado && perfil.seleccionable)?.clave ?? '';
+  const perfilEfectivo = ajustes.perfil_fees_clave || perfilPredeterminado;
+  const perfilSeleccionado = perfiles?.find((perfil) => perfil.clave === perfilEfectivo);
 
   return (
     <section>
@@ -136,12 +164,12 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
               <label className="ancho-2">
                 Perfil favorito
                 <select
-                  value={ajustes.perfil_fees_clave}
+                  value={perfilEfectivo}
                   onChange={(evento) => {
                     setAjustes({ ...ajustes, perfil_fees_clave: evento.target.value });
                   }}
                 >
-                  <option value="">Sin perfil</option>
+                  {!perfilEfectivo && <option value="">Sin perfil disponible</option>}
                   {perfiles
                     .filter((perfil) => perfil.seleccionable)
                     .map((perfil) => (
@@ -216,6 +244,45 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
               </label>
             </div>
             <p className="nota">Son referencias manuales. No cambian impuestos ya capturados en ninguna cotización.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Valores predeterminados de cotización nueva</legend>
+            <div className="rejilla">
+              <label>
+                Gastos locales y salida (HNL)
+                <input
+                  inputMode="decimal"
+                  value={ajustes.gastos_locales_predeterminado_hnl}
+                  onChange={(evento) => {
+                    setAjustes({ ...ajustes, gastos_locales_predeterminado_hnl: evento.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                Papelería general (USD)
+                <input
+                  inputMode="decimal"
+                  value={ajustes.papeleria_predeterminada_usd}
+                  onChange={(evento) => {
+                    setAjustes({ ...ajustes, papeleria_predeterminada_usd: evento.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                Tipo de cambio (HNL por USD)
+                <input
+                  inputMode="decimal"
+                  value={ajustes.tipo_cambio_predeterminado_hnl_por_usd}
+                  onChange={(evento) => {
+                    setAjustes({ ...ajustes, tipo_cambio_predeterminado_hnl_por_usd: evento.target.value });
+                  }}
+                />
+              </label>
+            </div>
+            <p className="nota">
+              Se copian a cada cotización nueva al crearla. Cambiarlos después no modifica cotizaciones existentes.
+            </p>
           </fieldset>
 
           <div>

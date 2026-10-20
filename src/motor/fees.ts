@@ -10,11 +10,16 @@ export type TramoFee = {
   valor: Valor;
 };
 
+export type EstadoFee = 'verificada' | 'captura_manual' | 'caso_real';
+
 export type CargoFee = {
   codigo: string;
   etiqueta: string;
   monto: Valor;
   modalidad: string | null;
+  desde?: Valor;
+  hasta?: Valor;
+  estado?: EstadoFee;
 };
 
 export type VersionFees = {
@@ -24,15 +29,25 @@ export type VersionFees = {
   fechaFuente: string | null;
   estado: 'verificada' | 'captura_manual' | 'pendiente';
   convencionLimite: ConvencionLimite;
+  modalidades: string[];
   tramos: TramoFee[];
   cargos: CargoFee[];
 };
 
-export type LineaFee = { concepto: string; monto: Decimal };
+export type LineaFee = { concepto: string; monto: Decimal; estado?: EstadoFee };
 
 export type ResultadoTablaFees =
   | { ok: true; total: Decimal; lineas: LineaFee[]; tramoIndice: number; version: string }
-  | { ok: false; motivo: 'sin_tabla' | 'sin_tramo' | 'puja_invalida' | 'version_invalida' };
+  | {
+      ok: false;
+      motivo:
+        | 'sin_tabla'
+        | 'sin_tramo'
+        | 'puja_invalida'
+        | 'version_invalida'
+        | 'cargo_sin_cobertura'
+        | 'modalidad_no_documentada';
+    };
 
 type Limite = Decimal | null | 'invalido';
 
@@ -47,6 +62,12 @@ export function validarVersionFees(version: VersionFees): string[] {
   if (version.estado === 'verificada' && (!version.fuente || !version.fechaFuente)) {
     errores.push('verificada sin fuente o fecha');
   }
+  version.cargos.forEach((cargo) => {
+    const desde = leerLimite(cargo.desde ?? null);
+    const hasta = leerLimite(cargo.hasta ?? null);
+    const invertido = desde instanceof Decimal && hasta instanceof Decimal && desde.gte(hasta);
+    if (desde === 'invalido' || hasta === 'invalido' || invertido) errores.push(`cargo ${cargo.codigo}: rango inválido`);
+  });
   if (version.tramos.length === 0) return errores;
 
   const tramos = version.tramos.map((t) => ({
@@ -70,7 +91,8 @@ export function validarVersionFees(version: VersionFees): string[] {
 
   const primero = tramos[0];
   const ultimo = tramos[tramos.length - 1];
-  if (primero && primero.desde !== null) errores.push('el primer tramo debe empezar sin límite inferior');
+  const primeroSinInicio = primero?.desde === null || (primero?.desde instanceof Decimal && primero.desde.isZero());
+  if (primero && !primeroSinInicio) errores.push('el primer tramo debe empezar sin límite inferior');
   if (ultimo && ultimo.hasta !== null) errores.push('el último tramo debe quedar abierto');
 
   for (let i = 1; i < tramos.length; i++) {
@@ -84,6 +106,21 @@ export function validarVersionFees(version: VersionFees): string[] {
     }
   }
   return errores;
+}
+
+function dentroDeRango(
+  puja: Decimal,
+  limiteDesde: Valor,
+  limiteHasta: Valor,
+  convencion: ConvencionLimite,
+): boolean {
+  const desde = leerLimite(limiteDesde);
+  const hasta = leerLimite(limiteHasta);
+  if (desde === 'invalido' || hasta === 'invalido') return false;
+  if (convencion === 'desde_incluido_hasta_excluido') {
+    return (desde === null || puja.gte(desde)) && (hasta === null || puja.lt(hasta));
+  }
+  return (desde === null || puja.gt(desde)) && (hasta === null || puja.lte(hasta));
 }
 
 function tramoContiene(puja: Decimal, tramo: TramoFee, convencion: ConvencionLimite): boolean {
@@ -114,12 +151,28 @@ export function calcularTablaFees(
   if (valor === null) return { ok: false, motivo: 'version_invalida' };
   const base = tramo.tipo === 'fijo' ? valor : pujaDecimal.times(valor).div(100);
 
+  if (version.modalidades.length > 0 && (modalidad === null || !version.modalidades.includes(modalidad))) {
+    return { ok: false, motivo: 'modalidad_no_documentada' };
+  }
+
   const lineas: LineaFee[] = [{ concepto: 'Buyer fee base', monto: base }];
-  for (const cargo of version.cargos) {
-    if (cargo.modalidad !== null && cargo.modalidad !== modalidad) continue;
+  const codigos = [...new Set(version.cargos.map((c) => c.codigo))];
+  for (const codigo of codigos) {
+    const aplicables = version.cargos.filter(
+      (c) => c.codigo === codigo && (c.modalidad === null || c.modalidad === modalidad),
+    );
+    const vigentes = aplicables.filter((c) =>
+      dentroDeRango(pujaDecimal, c.desde ?? null, c.hasta ?? null, version.convencionLimite),
+    );
+    if (vigentes.length === 0) {
+      if (aplicables.length > 0) return { ok: false, motivo: 'cargo_sin_cobertura' };
+      continue;
+    }
+    const [cargo, ...otros] = vigentes;
+    if (!cargo || otros.length > 0) return { ok: false, motivo: 'version_invalida' };
     const monto = valorDecimal(cargo.monto);
     if (monto === null || monto.isNegative()) return { ok: false, motivo: 'version_invalida' };
-    lineas.push({ concepto: cargo.etiqueta, monto });
+    lineas.push({ concepto: cargo.etiqueta, monto, estado: cargo.estado });
   }
 
   const total = lineas.reduce((suma, linea) => suma.plus(linea.monto), new Decimal(0));

@@ -4,31 +4,47 @@ import {
   aEntradas,
   aFormulario,
   construirParches,
+  MOTIVO_FEES,
+  modalidadEfectiva,
+  resolverFees,
+  snapshotFees,
   type Campos,
   type CampoInvalido,
   type CotizacionFila,
+  type ResolucionFees,
   type VehiculoFila,
+  type VersionFeesActiva,
 } from '../lib/formulario';
 import {
   avisosCambioParametros,
   calcularCotizacion,
   formatearMonto,
   valorDecimal,
+  type ModoFees,
   type Pendiente,
 } from '../motor/calculo';
 import { buscarBarcoReferencia, type MapeoTipoVehiculo, type TarifaEmbarque } from '../motor/referencias';
+import type { VersionFees } from '../motor/fees';
+import { buscarGruas, resolverGrua, zonaSugerida, type CoincidenciaGrua, type FilaGrua } from '../motor/gruas';
+import { ControladorVin, estadoVin, normalizarVin } from '../motor/vin';
 import { irA } from '../lib/ruta';
 
 type EstadoGuardado = 'guardado' | 'pendiente' | 'guardando' | 'fallo' | 'conflicto';
 
+type PerfilFees = { clave: string; etiqueta: string; tablaCargada: boolean };
+
 type Referencias = {
-  perfiles: { clave: string; etiqueta: string }[];
+  perfiles: PerfilFees[];
+  versionesFees: VersionFeesActiva[];
   mapeos: MapeoTipoVehiculo[];
   tarifas: TarifaEmbarque[];
+  gruas: FilaGrua[];
   pagoUnicoHnl: string | null;
 };
 
 type CargaEditor = { vehiculo: VehiculoFila; cotizacion: CotizacionFila; referencias: Referencias };
+
+type ConsultaVin = { vin: string; estado: 'consultando' | 'aplicado' | 'sin_datos' | 'error' };
 
 const RETARDO_AUTOGUARDADO_MS = 800;
 
@@ -52,11 +68,44 @@ const ETIQUETA_PENDIENTE: Record<Pendiente, string> = {
   precio_venta: 'Precio de venta',
 };
 
+const ETIQUETA_MODALIDAD: Record<string, string> = {
+  internet_live: 'En vivo por Internet',
+  proxy: 'Proxy',
+};
+
+const ETIQUETA_VIN: Record<ConsultaVin['estado'], string> = {
+  consultando: 'Consultando datos del VIN…',
+  aplicado: 'Datos del VIN revisados; solo se completaron los campos vacíos.',
+  sin_datos: 'vPIC no devolvió datos para este VIN. Capture marca, modelo y año a mano.',
+  error: 'No hubo respuesta de vPIC. Puede capturar los datos a mano.',
+};
+
 type FilaMapeo = { tipo_codigo: string; zona_salida: string; categoria_origen: string | null };
 type FilaTarifa = { clave: string; zona_salida: string; categoria: string; monto: number | string };
+type FilaPerfil = {
+  clave: string;
+  etiqueta: string;
+  estado_tabla: string;
+  seleccionable: boolean;
+};
+type FilaGruaBd = {
+  clave: string;
+  zona_salida: string;
+  etiqueta_origen: string | null;
+  etiqueta: string;
+  monto_usd: number | string | null;
+};
+type FilaAjustes = { pago_unico_hnl: number | string | null };
+type FilaVersionFees = { fee_profile_clave: string; contenido: unknown };
 
 function aTextoONulo(valor: unknown): string | null {
   return typeof valor === 'string' || typeof valor === 'number' ? String(valor) : null;
+}
+
+function procedenciaMonto(fuente: string, monto: string): string {
+  if (fuente === 'referencia') return 'tarifa de referencia';
+  if (monto.trim() === '') return 'pendiente';
+  return 'importe manual';
 }
 
 async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' | 'error'> {
@@ -69,19 +118,37 @@ async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' |
   if (resVehiculo.error) return 'error';
   const vehiculo = resVehiculo.data as VehiculoFila;
 
-  const [perfiles, mapeos, tarifas, ajustes] = await Promise.all([
-    supabase.from('fee_profiles').select('clave, etiqueta').order('etiqueta'),
+  const [perfiles, mapeos, tarifas, gruas, ajustes, versiones] = await Promise.all([
+    supabase.from('fee_profiles').select('clave, etiqueta, estado_tabla, seleccionable').order('etiqueta'),
     supabase.from('vehicle_type_mappings').select('tipo_codigo, zona_salida, categoria_origen'),
     supabase.from('shipping_rates').select('clave, zona_salida, categoria, monto').eq('moneda', 'USD'),
+    supabase.from('towing_rates').select('clave, zona_salida, etiqueta_origen, etiqueta, monto_usd'),
     supabase.from('user_settings').select('pago_unico_hnl').maybeSingle(),
+    supabase.from('fee_schedule_versions').select('fee_profile_clave, contenido').eq('es_activa', true),
   ]);
-  if (perfiles.error || mapeos.error || tarifas.error || ajustes.error) return 'error';
+  if (perfiles.error || mapeos.error || tarifas.error || gruas.error || ajustes.error || versiones.error) return 'error';
+
+  const versionesFees: VersionFeesActiva[] = (versiones.data as unknown as FilaVersionFees[])
+    .filter((v) => v.contenido !== null)
+    .map((v) => ({ perfilClave: v.fee_profile_clave, contenido: v.contenido as VersionFees }));
+  const perfilesConTabla = new Set(versionesFees.map((v) => v.perfilClave));
+
+  const filasPerfiles = (perfiles.data as unknown as FilaPerfil[]).filter(
+    (p) => p.seleccionable || p.clave === cotizacion.perfil_fees_clave,
+  );
+  const filasAjustes: FilaAjustes | null = ajustes.data;
 
   return {
     vehiculo,
     cotizacion,
     referencias: {
-      perfiles: perfiles.data,
+      perfiles: filasPerfiles.map((p) => ({
+        clave: p.clave,
+        etiqueta: p.etiqueta,
+        tablaCargada: perfilesConTabla.has(p.clave) || p.estado_tabla === 'verificada',
+      })),
+      versionesFees,
+      pagoUnicoHnl: aTextoONulo(filasAjustes?.pago_unico_hnl),
       mapeos: (mapeos.data as unknown as FilaMapeo[]).map((m) => ({
         tipoCodigo: m.tipo_codigo,
         zonaSalida: m.zona_salida,
@@ -93,7 +160,14 @@ async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' |
         categoria: t.categoria,
         monto: t.monto,
       })),
-      pagoUnicoHnl: aTextoONulo(ajustes.data?.pago_unico_hnl),
+      gruas: (gruas.data as unknown as FilaGruaBd[]).map((g) => ({
+        id: g.clave,
+        ubicacion: [g.etiqueta_origen, g.etiqueta]
+          .filter((t, indice, todas): t is string => typeof t === 'string' && t !== '' && todas.indexOf(t) === indice)
+          .join(' · '),
+        zona: g.zona_salida,
+        montoUsd: aTextoONulo(g.monto_usd),
+      })),
     },
   };
 }
@@ -127,11 +201,51 @@ export function EditorCotizacion({ id }: { id: string }) {
   );
 }
 
+function conZonaSugerida(entrada: Partial<Campos>, actual: Campos, gruas: FilaGrua[]): Partial<Campos> {
+  if (entrada.ubicacion === undefined) return entrada;
+  const sugeridaAntes = zonaSugerida(gruas, actual.ubicacion);
+  if (actual.zonaSalida !== '' && actual.zonaSalida !== sugeridaAntes) return entrada;
+  return { ...entrada, zonaSalida: zonaSugerida(gruas, entrada.ubicacion) ?? '' };
+}
+
+function tarifaGruaAutomatica(siguiente: Campos, gruas: FilaGrua[]): Partial<Campos> {
+  if (siguiente.gruaFuente === 'manual') return {};
+  const coincidencias: CoincidenciaGrua[] =
+    siguiente.ubicacion.trim() === '' ? [] : buscarGruas(gruas, siguiente.ubicacion, siguiente.zonaSalida || null);
+  const unica = resolverGrua(coincidencias).estado === 'unica' ? coincidencias[0] : undefined;
+  if (unica && unica.montoUsd !== null) {
+    return { gruaUsd: unica.montoUsd, gruaFuente: 'referencia', gruaReferenciaClave: unica.id };
+  }
+  return siguiente.gruaFuente === 'referencia' ? { gruaUsd: '', gruaFuente: '', gruaReferenciaClave: '' } : {};
+}
+
+function tarifaBarcoAutomatica(siguiente: Campos, referencias: Referencias): Partial<Campos> {
+  if (siguiente.barcoFuente === 'manual') return {};
+  const referencia = buscarBarcoReferencia(
+    siguiente.tipoVehiculo || null,
+    siguiente.zonaSalida || null,
+    referencias.mapeos,
+    referencias.tarifas,
+  );
+  const monto = referencia ? valorDecimal(referencia.monto) : null;
+  if (referencia && monto !== null) {
+    return { barcoUsd: monto.toString(), barcoFuente: 'referencia', barcoReferenciaClave: referencia.clave };
+  }
+  return siguiente.barcoFuente === 'referencia' ? { barcoUsd: '', barcoFuente: '', barcoReferenciaClave: '' } : {};
+}
+
+function modoFeesDesde(valor: string): ModoFees {
+  return valor === 'tabla' || valor === 'carro_mas_fees' ? valor : 'total_fees';
+}
+
 function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRecargar: () => void }) {
   const { vehiculo, cotizacion, referencias } = carga;
   const vehiculoId = vehiculo.id;
   const cotizacionId = cotizacion.id;
+  const versionesFees = referencias.versionesFees;
 
+  const [controlador] = useState(() => new ControladorVin((url) => fetch(url)));
+  const [consultaVin, setConsultaVin] = useState<ConsultaVin | null>(null);
   const [campos, setCampos] = useState<Campos>(() => aFormulario(vehiculo, cotizacion));
   const [estado, setEstado] = useState<EstadoGuardado>('guardado');
   const [invalidos, setInvalidos] = useState<CampoInvalido[]>([]);
@@ -146,6 +260,7 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
     if (enConflicto.current) return;
     const instantanea = camposRef.current;
     const parches = construirParches(instantanea);
+    Object.assign(parches.cotizacion, snapshotFees(instantanea, resolverFees(instantanea, versionesFees)));
     setInvalidos(parches.invalidos);
     setEstado('guardando');
 
@@ -186,7 +301,7 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
     versiones.current.cotizacion = resCotizacion.data.row_version as number;
 
     setEstado(camposRef.current === instantanea ? 'guardado' : 'pendiente');
-  }, [vehiculoId, cotizacionId]);
+  }, [vehiculoId, cotizacionId, versionesFees]);
 
   const guardarAhora = useCallback(() => {
     if (temporizador.current) {
@@ -215,6 +330,33 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
     [guardarAhora],
   );
 
+  const consultarVin = useCallback(
+    (texto: string) => {
+      const vin = normalizarVin(texto);
+      if (estadoVin(vin) !== 'completo') {
+        setConsultaVin(null);
+        return;
+      }
+      setConsultaVin({ vin, estado: 'consultando' });
+      void controlador.consultar(vin).then((resultado) => {
+        if (resultado.estado === 'descartado') return;
+        if (normalizarVin(camposRef.current.vin) !== resultado.vin) return;
+        if (resultado.estado !== 'datos') {
+          setConsultaVin({ vin, estado: resultado.estado === 'sin_datos' ? 'sin_datos' : 'error' });
+          return;
+        }
+        const actual = camposRef.current;
+        const parcial: Partial<Campos> = {};
+        if (actual.marca.trim() === '' && resultado.datos.marca !== null) parcial.marca = resultado.datos.marca;
+        if (actual.modelo.trim() === '' && resultado.datos.modelo !== null) parcial.modelo = resultado.datos.modelo;
+        if (actual.anio.trim() === '' && resultado.datos.anio !== null) parcial.anio = String(resultado.datos.anio);
+        if (Object.keys(parcial).length > 0) cambiar(parcial);
+        setConsultaVin({ vin, estado: 'aplicado' });
+      });
+    },
+    [controlador, cambiar],
+  );
+
   useEffect(() => {
     const alTeclear = (evento: KeyboardEvent) => {
       if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === 's') {
@@ -234,7 +376,10 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
     };
   }, [guardarAhora]);
 
-  const resultado = calcularCotizacion(aEntradas(campos));
+  const resolucionFees: ResolucionFees = resolverFees(campos, versionesFees);
+  const feeTabla = resolucionFees.resultado.ok ? resolucionFees.resultado.total.toString() : null;
+  const resultado = calcularCotizacion(aEntradas(campos, feeTabla));
+
   const referenciaBarco = buscarBarcoReferencia(
     campos.tipoVehiculo || null,
     campos.zonaSalida || null,
@@ -242,8 +387,48 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
     referencias.tarifas,
   );
   const montoBarcoReferencia = referenciaBarco ? valorDecimal(referenciaBarco.monto) : null;
+
+  const coincidenciasGrua: CoincidenciaGrua[] =
+    campos.ubicacion.trim() === ''
+      ? []
+      : buscarGruas(referencias.gruas, campos.ubicacion, campos.zonaSalida || null);
+  const resolucionGrua = resolverGrua(coincidenciasGrua);
+  const tarifaGruaUnica = resolucionGrua.estado === 'unica' ? coincidenciasGrua[0] : undefined;
+
+  const perfilSeleccionado = referencias.perfiles.find((p) => p.clave === campos.perfilFeesClave);
   const pagoUnico = referencias.pagoUnicoHnl;
-  const titulo = [vehiculo.marca, vehiculo.modelo, vehiculo.anio].filter(Boolean).join(' ') || 'Vehículo sin datos';
+  const titulo =
+    [campos.marca, campos.modelo, campos.anio].map((valor) => valor.trim()).filter(Boolean).join(' ') ||
+    'Vehículo sin datos';
+
+  const usarTarifaGrua = (coincidencia: CoincidenciaGrua) => {
+    if (coincidencia.montoUsd === null) return;
+    cambiar({ gruaUsd: coincidencia.montoUsd, gruaFuente: 'referencia', gruaReferenciaClave: coincidencia.id });
+  };
+
+  const cambiarCampos = (entrada: Partial<Campos>) => {
+    const parcial = conZonaSugerida(entrada, camposRef.current, referencias.gruas);
+    const siguiente: Campos = { ...camposRef.current, ...parcial };
+    const automaticos: Partial<Campos> = {};
+    if ('ubicacion' in parcial || 'zonaSalida' in parcial) {
+      Object.assign(automaticos, tarifaGruaAutomatica(siguiente, referencias.gruas));
+    }
+    if ('tipoVehiculo' in parcial || 'zonaSalida' in parcial) {
+      Object.assign(automaticos, tarifaBarcoAutomatica(siguiente, referencias));
+    }
+    cambiar({ ...parcial, ...automaticos });
+  };
+
+  const cambiarPerfil = (clave: string) => {
+    const tieneTabla = versionesFees.some((v) => v.perfilClave === clave);
+    const cambiaAModoTabla = tieneTabla && camposRef.current.modoFees === 'total_fees';
+    cambiar(cambiaAModoTabla ? { perfilFeesClave: clave, modoFees: 'tabla' } : { perfilFeesClave: clave });
+  };
+
+  const cambiarSubasta = (subasta: string) => {
+    cambiar({ subasta });
+    if (subasta === 'IAA' && camposRef.current.perfilFeesClave === '') cambiarPerfil('iaa_standard_volume');
+  };
 
   return (
     <form className="editor" onSubmit={(evento) => { evento.preventDefault(); }}>
@@ -283,9 +468,15 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                   value={campos.vin}
                   maxLength={17}
                   aria-invalid={invalidos.includes('vin')}
-                  onChange={(e) => { cambiar({ vin: e.target.value }); }}
+                  onChange={(e) => {
+                    cambiar({ vin: e.target.value });
+                    consultarVin(e.target.value);
+                  }}
                 />
               </label>
+              <div className="ancho-2 referencia">
+                {consultaVin && <small role="status">{ETIQUETA_VIN[consultaVin.estado]}</small>}
+              </div>
               <label>
                 Marca
                 <input value={campos.marca} onChange={(e) => { cambiar({ marca: e.target.value }); }} />
@@ -309,12 +500,12 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
               </label>
               <label>
                 Tipo
-                <select value={campos.tipoVehiculo} onChange={(e) => { cambiar({ tipoVehiculo: e.target.value }); }}>
+                <select value={campos.tipoVehiculo} onChange={(e) => { cambiarCampos({ tipoVehiculo: e.target.value }); }}>
                   <option value="">Pendiente</option>
                   <option value="sedan">Sedán</option>
                   <option value="suv">SUV / camioneta</option>
                   <option value="pickup">Pickup</option>
-                  <option value="minivan">Minivan</option>
+                  <option value="minivan">Van / minivan</option>
                   <option value="motorcycle">Motocicleta</option>
                   <option value="other">Otro</option>
                 </select>
@@ -331,7 +522,7 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
             <div className="rejilla">
               <label>
                 Subasta
-                <select value={campos.subasta} onChange={(e) => { cambiar({ subasta: e.target.value }); }}>
+                <select value={campos.subasta} onChange={(e) => { cambiarSubasta(e.target.value); }}>
                   <option value="">Pendiente</option>
                   <option value="IAA">IAA</option>
                   <option value="COPART">Copart</option>
@@ -339,12 +530,12 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                 </select>
               </label>
               <label>
-                Ubicación
-                <input value={campos.ubicacion} onChange={(e) => { cambiar({ ubicacion: e.target.value }); }} />
+                Sede o ubicación
+                <input value={campos.ubicacion} onChange={(e) => { cambiarCampos({ ubicacion: e.target.value }); }} />
               </label>
               <label>
-                Zona de salida
-                <select value={campos.zonaSalida} onChange={(e) => { cambiar({ zonaSalida: e.target.value }); }}>
+                Puerto de salida (zona)
+                <select value={campos.zonaSalida} onChange={(e) => { cambiarCampos({ zonaSalida: e.target.value }); }}>
                   <option value="">Pendiente</option>
                   <option value="DELAWARE">Delaware</option>
                   <option value="FLORIDA">Florida</option>
@@ -354,14 +545,11 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
               </label>
               <label className="ancho-2">
                 Perfil de fees
-                <select
-                  value={campos.perfilFeesClave}
-                  onChange={(e) => { cambiar({ perfilFeesClave: e.target.value }); }}
-                >
+                <select value={campos.perfilFeesClave} onChange={(e) => { cambiarPerfil(e.target.value); }}>
                   <option value="">Sin perfil</option>
                   {referencias.perfiles.map((perfil) => (
                     <option key={perfil.clave} value={perfil.clave}>
-                      {perfil.etiqueta}
+                      {perfil.tablaCargada ? perfil.etiqueta : `${perfil.etiqueta} (sin tabla cargada)`}
                     </option>
                   ))}
                 </select>
@@ -383,19 +571,18 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
               </label>
               <label>
                 Modo de fees
-                <select
-                  value={campos.modoFees}
-                  onChange={(e) => { cambiar({ modoFees: e.target.value === 'carro_mas_fees' ? 'carro_mas_fees' : 'total_fees' }); }}
-                >
+                <select value={campos.modoFees} onChange={(e) => { cambiar({ modoFees: modoFeesDesde(e.target.value) }); }}>
+                  <option value="tabla">Automática (tabla del perfil)</option>
                   <option value="total_fees">Fees manuales</option>
                   <option value="carro_mas_fees">Carro + fees</option>
                 </select>
               </label>
               <label>
-                Fees
+                Fees (manual)
                 <input
                   value={campos.feesUsd}
                   inputMode="decimal"
+                  disabled={campos.modoFees !== 'total_fees'}
                   aria-invalid={invalidos.includes('feesUsd')}
                   onChange={(e) => { cambiar({ feesUsd: e.target.value }); }}
                 />
@@ -410,38 +597,130 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                   onChange={(e) => { cambiar({ carroMasFeesUsd: e.target.value }); }}
                 />
               </label>
+              {perfilSeleccionado && !perfilSeleccionado.tablaCargada && (
+                <p className="ancho-2 nota">
+                  Este perfil no tiene tabla de tramos cargada. Capture el total de fees a mano; no se estima.
+                </p>
+              )}
+              {resolucionFees.version && (
+                <>
+                  <label>
+                    Modalidad de puja
+                    <select
+                      value={modalidadEfectiva(campos, resolucionFees.version) ?? ''}
+                      onChange={(e) => { cambiar({ modalidadPuja: e.target.value }); }}
+                    >
+                      <option value="">Pendiente</option>
+                      {resolucionFees.version.modalidades.map((modalidad) => (
+                        <option key={modalidad} value={modalidad}>
+                          {ETIQUETA_MODALIDAD[modalidad] ?? modalidad}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="ancho-2 referencia" aria-live="polite">
+                    {resolucionFees.resultado.ok ? (
+                      <span>
+                        Fees por tabla ({resolucionFees.version.version}): {formatearMonto(resolucionFees.resultado.total)} USD
+                      </span>
+                    ) : (
+                      <span className="pendiente">{MOTIVO_FEES[resolucionFees.resultado.motivo]}</span>
+                    )}
+                    {campos.modoFees !== 'tabla' && (
+                      <button type="button" onClick={() => { cambiar({ modoFees: 'tabla' }); }}>
+                        Volver a tarifa automática
+                      </button>
+                    )}
+                    {resolucionFees.resultado.ok && (
+                      <details>
+                        <summary>Desglose de fees</summary>
+                        <ul>
+                          {resolucionFees.resultado.lineas.map((linea) => (
+                            <li key={linea.concepto}>
+                              {linea.concepto}: {formatearMonto(linea.monto)} USD
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                </>
+              )}
               <label>
                 Grúa
                 <input
                   value={campos.gruaUsd}
                   inputMode="decimal"
                   aria-invalid={invalidos.includes('gruaUsd')}
-                  onChange={(e) => { cambiar({ gruaUsd: e.target.value }); }}
+                  onChange={(e) => { cambiar({ gruaUsd: e.target.value, gruaFuente: 'manual' }); }}
                 />
               </label>
+              <div className="ancho-2 referencia" aria-live="polite">
+                {tarifaGruaUnica && tarifaGruaUnica.montoUsd !== null && (
+                  <>
+                    <span>
+                      Tarifa de grúa: {formatearMonto(valorDecimal(tarifaGruaUnica.montoUsd))} USD ({tarifaGruaUnica.ubicacion})
+                    </span>
+                    {campos.gruaFuente === 'manual' && (
+                      <button type="button" onClick={() => { usarTarifaGrua(tarifaGruaUnica); }}>
+                        Volver a tarifa
+                      </button>
+                    )}
+                  </>
+                )}
+                {resolucionGrua.estado === 'ambigua' && (
+                  <>
+                    <span>Hay tarifas distintas para esta ubicación. Elija una o capture el importe.</span>
+                    {resolucionGrua.coincidencias
+                      .filter((c) => c.montoUsd !== null)
+                      .slice(0, 8)
+                      .map((c) => (
+                        <button key={c.id} type="button" onClick={() => { usarTarifaGrua(c); }}>
+                          {c.ubicacion}: {formatearMonto(valorDecimal(c.montoUsd))} USD
+                        </button>
+                      ))}
+                  </>
+                )}
+                {resolucionGrua.estado === 'sin_importe' && (
+                  <span className="pendiente">Hay coincidencias sin importe en la tarifa. Capture el importe manual.</span>
+                )}
+                {resolucionGrua.estado === 'sin_coincidencia' && campos.ubicacion.trim() !== '' && (
+                  <span className="pendiente">Grúa no encontrada para esta sede y zona. Capture el importe manual.</span>
+                )}
+                <small>Procedencia de la grúa: {procedenciaMonto(campos.gruaFuente, campos.gruaUsd)}</small>
+              </div>
               <label>
                 Barco
                 <input
                   value={campos.barcoUsd}
                   inputMode="decimal"
                   aria-invalid={invalidos.includes('barcoUsd')}
-                  onChange={(e) => { cambiar({ barcoUsd: e.target.value }); }}
+                  onChange={(e) => { cambiar({ barcoUsd: e.target.value, barcoFuente: 'manual' }); }}
                 />
               </label>
               <div className="ancho-2 referencia">
-                {montoBarcoReferencia ? (
+                {montoBarcoReferencia && referenciaBarco ? (
                   <>
                     <span>Referencia de barco: {formatearMonto(montoBarcoReferencia)} USD</span>
-                    <button
-                      type="button"
-                      onClick={() => { cambiar({ barcoUsd: montoBarcoReferencia.toString() }); }}
-                    >
-                      Usar referencia
-                    </button>
+                    {campos.barcoFuente === 'manual' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          cambiar({
+                            barcoUsd: montoBarcoReferencia.toString(),
+                            barcoFuente: 'referencia',
+                            barcoReferenciaClave: referenciaBarco.clave,
+                          });
+                        }}
+                      >
+                        Volver a tarifa
+                      </button>
+                    )}
                   </>
                 ) : (
-                  <span className="pendiente">Sin referencia de barco para este tipo y zona</span>
+                  <span className="pendiente">Barco no encontrado para este tipo y zona. Capture el importe manual.</span>
                 )}
+                <small>Procedencia del barco: {procedenciaMonto(campos.barcoFuente, campos.barcoUsd)}</small>
               </div>
               <label>
                 Papelería
@@ -528,7 +807,7 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
           </fieldset>
 
           <fieldset>
-            <legend>Reparación y venta (HNL)</legend>
+            <legend>Reparación, venta y subasta (opcional)</legend>
             <div className="rejilla">
               <label>
                 Reparación
@@ -546,6 +825,26 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                   inputMode="decimal"
                   aria-invalid={invalidos.includes('precioVentaHnl')}
                   onChange={(e) => { cambiar({ precioVentaHnl: e.target.value }); }}
+                />
+              </label>
+              <label>
+                Fecha de subasta
+                <input
+                  type="date"
+                  value={campos.fechaSubasta}
+                  aria-invalid={invalidos.includes('fechaSubasta')}
+                  onChange={(e) => { cambiar({ fechaSubasta: e.target.value }); }}
+                />
+              </label>
+              <label>
+                Vendedor
+                <input value={campos.vendedor} onChange={(e) => { cambiar({ vendedor: e.target.value }); }} />
+              </label>
+              <label>
+                Verificación Bid.cars
+                <input
+                  value={campos.verificacionBidcars}
+                  onChange={(e) => { cambiar({ verificacionBidcars: e.target.value }); }}
                 />
               </label>
               <label className="ancho-2">

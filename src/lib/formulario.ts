@@ -1,6 +1,24 @@
 import { valorDecimal, type EntradasCotizacion, type ModoFees, type ModoImpuestos } from '../motor/calculo';
+import { calcularTablaFees, type ResultadoTablaFees, type VersionFees } from '../motor/fees';
 
 export type Numero = number | string | null;
+
+export type VersionFeesActiva = { perfilClave: string; contenido: VersionFees };
+
+export type ResolucionFees = {
+  version: VersionFees | null;
+  modalidad: string | null;
+  resultado: ResultadoTablaFees;
+};
+
+export const MOTIVO_FEES: Record<Extract<ResultadoTablaFees, { ok: false }>['motivo'], string> = {
+  sin_tabla: 'El perfil no tiene tabla cargada. Capture los fees a mano.',
+  sin_tramo: 'La puja no cae en ningún tramo de la tabla.',
+  puja_invalida: 'Capture la puja para calcular los fees.',
+  version_invalida: 'La tabla de fees tiene un error de datos. Capture los fees a mano.',
+  cargo_sin_cobertura: 'Hay un cargo de la tabla que no cubre esta puja. Capture los fees a mano.',
+  modalidad_no_documentada: 'Elija una modalidad de puja documentada en la tabla.',
+};
 
 export type VehiculoFila = {
   id: string;
@@ -24,6 +42,7 @@ export type CotizacionFila = {
   tipo_vehiculo: string | null;
   perfil_fees_clave: string | null;
   modo_fees: ModoFees;
+  modalidad_puja: string | null;
   puja_usd: Numero;
   fees_usd: Numero;
   carro_mas_fees_usd: Numero;
@@ -38,6 +57,14 @@ export type CotizacionFila = {
   reparacion_hnl: Numero;
   precio_venta_hnl: Numero;
   notas: string | null;
+  grua_fuente: string | null;
+  grua_referencia_clave: string | null;
+  barco_fuente: string | null;
+  barco_referencia_clave: string | null;
+  vendedor: string | null;
+  fecha_subasta: string | null;
+  max_bid_manual_usd: Numero;
+  verificacion_bidcars: string | null;
   row_version: number;
 };
 
@@ -54,6 +81,7 @@ export type Campos = {
   tipoVehiculo: string;
   perfilFeesClave: string;
   modoFees: ModoFees;
+  modalidadPuja: string;
   pujaUsd: string;
   feesUsd: string;
   carroMasFeesUsd: string;
@@ -68,6 +96,14 @@ export type Campos = {
   reparacionHnl: string;
   precioVentaHnl: string;
   notas: string;
+  gruaFuente: string;
+  gruaReferenciaClave: string;
+  barcoFuente: string;
+  barcoReferenciaClave: string;
+  vendedor: string;
+  fechaSubasta: string;
+  maxBidManualUsd: string;
+  verificacionBidcars: string;
 };
 
 export type CampoInvalido = keyof Campos;
@@ -80,6 +116,7 @@ const COLUMNAS_COTIZACION: Record<string, keyof CotizacionFila> = {
   tipoVehiculo: 'tipo_vehiculo',
   perfilFeesClave: 'perfil_fees_clave',
   modoFees: 'modo_fees',
+  modalidadPuja: 'modalidad_puja',
   pujaUsd: 'puja_usd',
   feesUsd: 'fees_usd',
   carroMasFeesUsd: 'carro_mas_fees_usd',
@@ -94,6 +131,13 @@ const COLUMNAS_COTIZACION: Record<string, keyof CotizacionFila> = {
   reparacionHnl: 'reparacion_hnl',
   precioVentaHnl: 'precio_venta_hnl',
   notas: 'notas',
+  gruaFuente: 'grua_fuente',
+  gruaReferenciaClave: 'grua_referencia_clave',
+  barcoFuente: 'barco_fuente',
+  barcoReferenciaClave: 'barco_referencia_clave',
+  vendedor: 'vendedor',
+  maxBidManualUsd: 'max_bid_manual_usd',
+  verificacionBidcars: 'verificacion_bidcars',
 };
 
 const NUMERICOS = new Set<keyof Campos>([
@@ -109,6 +153,7 @@ const NUMERICOS = new Set<keyof Campos>([
   'gastosLocalesHnl',
   'reparacionHnl',
   'precioVentaHnl',
+  'maxBidManualUsd',
 ]);
 
 const textoODefecto = (valor: string | null | undefined): string => valor ?? '';
@@ -128,6 +173,7 @@ export function aFormulario(vehiculo: VehiculoFila, cotizacion: CotizacionFila):
     tipoVehiculo: textoODefecto(cotizacion.tipo_vehiculo),
     perfilFeesClave: textoODefecto(cotizacion.perfil_fees_clave),
     modoFees: cotizacion.modo_fees,
+    modalidadPuja: textoODefecto(cotizacion.modalidad_puja),
     pujaUsd: num(cotizacion.puja_usd),
     feesUsd: num(cotizacion.fees_usd),
     carroMasFeesUsd: num(cotizacion.carro_mas_fees_usd),
@@ -142,6 +188,14 @@ export function aFormulario(vehiculo: VehiculoFila, cotizacion: CotizacionFila):
     reparacionHnl: num(cotizacion.reparacion_hnl),
     precioVentaHnl: num(cotizacion.precio_venta_hnl),
     notas: textoODefecto(cotizacion.notas),
+    gruaFuente: textoODefecto(cotizacion.grua_fuente),
+    gruaReferenciaClave: textoODefecto(cotizacion.grua_referencia_clave),
+    barcoFuente: textoODefecto(cotizacion.barco_fuente),
+    barcoReferenciaClave: textoODefecto(cotizacion.barco_referencia_clave),
+    vendedor: textoODefecto(cotizacion.vendedor),
+    fechaSubasta: textoODefecto(cotizacion.fecha_subasta),
+    maxBidManualUsd: num(cotizacion.max_bid_manual_usd),
+    verificacionBidcars: textoODefecto(cotizacion.verificacion_bidcars),
   };
 }
 
@@ -164,9 +218,15 @@ function validarVin(valor: string): { valor: string | null; valido: boolean } {
   return { valor: limpio, valido: limpio.length <= 17 };
 }
 
+function validarFecha(valor: string): { valor: string | null; valido: boolean } {
+  const limpio = valor.trim();
+  if (limpio === '') return { valor: null, valido: true };
+  return { valor: limpio, valido: /^\d{4}-\d{2}-\d{2}$/.test(limpio) };
+}
+
 export type ParchesFormulario = {
   vehiculo: Partial<Record<keyof VehiculoFila, string | number | null>>;
-  cotizacion: Partial<Record<keyof CotizacionFila, string | number | null>>;
+  cotizacion: Record<string, unknown>;
   invalidos: CampoInvalido[];
 };
 
@@ -182,6 +242,10 @@ export function construirParches(campos: Campos): ParchesFormulario {
   const anio = validarAnio(campos.anio);
   if (!anio.valido) invalidos.push('anio');
   else vehiculo.anio = anio.valor;
+
+  const fecha = validarFecha(campos.fechaSubasta);
+  if (!fecha.valido) invalidos.push('fechaSubasta');
+  else cotizacion.fecha_subasta = fecha.valor;
 
   vehiculo.marca = textoONulo(campos.marca);
   vehiculo.modelo = textoONulo(campos.modelo);
@@ -208,14 +272,43 @@ export function construirParches(campos: Campos): ParchesFormulario {
   return { vehiculo, cotizacion, invalidos };
 }
 
-export function aEntradas(campos: Campos): EntradasCotizacion {
+export function modalidadEfectiva(campos: Campos, version: VersionFees | null): string | null {
+  const capturada = campos.modalidadPuja.trim();
+  if (capturada !== '') return capturada;
+  return version && version.modalidades.length === 1 ? version.modalidades[0] ?? null : null;
+}
+
+export function resolverFees(campos: Campos, versiones: VersionFeesActiva[]): ResolucionFees {
+  const version = versiones.find((v) => v.perfilClave === campos.perfilFeesClave)?.contenido ?? null;
+  const modalidad = modalidadEfectiva(campos, version);
+  const puja = campos.pujaUsd.trim() === '' ? null : campos.pujaUsd.trim();
+  return { version, modalidad, resultado: calcularTablaFees(puja, version, modalidad) };
+}
+
+export function snapshotFees(campos: Campos, resolucion: ResolucionFees): Record<string, unknown> {
+  const { resultado, version, modalidad } = resolucion;
+  if (campos.modoFees !== 'tabla' || !resultado.ok || version === null) {
+    return { modalidad_puja: modalidad, fees_version: null, fees_desglose: [] };
+  }
+  return {
+    modalidad_puja: modalidad,
+    fees_version: version.version,
+    fees_desglose: resultado.lineas.map((linea) => ({
+      concepto: linea.concepto,
+      monto: linea.monto.toString(),
+      estado: linea.estado ?? null,
+    })),
+  };
+}
+
+export function aEntradas(campos: Campos, feeTablaUsd: string | null = null): EntradasCotizacion {
   const num = (valor: string): string | null => (valor.trim() === '' ? null : valor.trim());
   return {
     pujaUsd: num(campos.pujaUsd),
     modoFees: campos.modoFees,
     feesUsd: num(campos.feesUsd),
     carroMasFeesUsd: num(campos.carroMasFeesUsd),
-    feeTablaUsd: null,
+    feeTablaUsd,
     gruaUsd: num(campos.gruaUsd),
     barcoUsd: num(campos.barcoUsd),
     papeleriaUsd: num(campos.papeleriaUsd),

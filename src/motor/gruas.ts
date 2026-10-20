@@ -43,3 +43,8 @@ export function resolverGrua(coincidencias: CoincidenciaGrua[]): ResolucionGrua 
   if (monto === null) return { estado: 'sin_importe', coincidencias };
   return { estado: 'unica', montoUsd: monto, coincidencias };
 }
+
+export function zonaSugerida(filas: FilaGrua[], ubicacion: string): string | null {
+  const zonas = Array.from(new Set(buscarGruas(filas, ubicacion, null).map((c) => c.zona)));
+  return zonas.length === 1 ? (zonas[0] ?? null) : null;
+}

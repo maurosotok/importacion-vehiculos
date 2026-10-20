@@ -1,6 +1,106 @@
 {
-  "schema_version": 1,
-  "estado": "pendiente",
-  "nota": "Tarifas de fees IAA y Copart capturadas a mano desde fuentes oficiales. Hasta cargar una versión verificada, los perfiles usan importe manual o quedan pendientes. Claves en camelCase, igual que el motor (src/motor/fees.ts). convencionLimite: desde_incluido_hasta_excluido (por defecto) o desde_excluido_hasta_incluido. Cada versión debe declarar fuente y fechaFuente para estado verificada.",
-  "versiones": []
+  "schema_version": 3,
+  "estado": "captura_manual",
+  "nota": "Tarifas de fees IAA y Copart capturadas a mano desde fuentes oficiales. Los tramos se comparan con la puja con convencionLimite desde_incluido_hasta_excluido. Cada versión declara vigencia efectiva (fechaFuente), archivo de origen y modalidades documentadas. Cada cargo puede declarar desde/hasta (rango de puja donde aplica) y estado: verificada (fuente oficial), captura_manual (transcrito de fuente oficial, pendiente de confirmación) o caso_real (observado en cotizaciones reales; no se extrapola a otros rangos). Si la modalidad o la puja no están cubiertas, el total de fees queda pendiente y no se suma parcialmente.",
+  "versiones": [
+    {
+      "perfilId": "iaa_standard_volume",
+      "version": "standard_volume_vigente_2024-11-04",
+      "fuente": "IAA Standard Volume Buyer Fees (imagen Licensed_Low_standard_20241023.svg, guardada en fuentes_privadas/; el número 20241023 es del archivo, no la vigencia)",
+      "fechaArchivo": "2024-10-23",
+      "fechaFuente": "2024-11-04",
+      "fechaFuenteNota": "Vigencia efectiva indicada por el usuario para la tabla. Confirmar con la fuente antes de marcar verificada.",
+      "estado": "captura_manual",
+      "convencionLimite": "desde_incluido_hasta_excluido",
+      "modalidades": ["internet_live"],
+      "tramos": [
+        { "desde": null, "hasta": "50", "tipo": "fijo", "valor": "25" },
+        { "desde": "50", "hasta": "100", "tipo": "fijo", "valor": "45" },
+        { "desde": "100", "hasta": "200", "tipo": "fijo", "valor": "80" },
+        { "desde": "200", "hasta": "300", "tipo": "fijo", "valor": "130" },
+        { "desde": "300", "hasta": "350", "tipo": "fijo", "valor": "137.50" },
+        { "desde": "350", "hasta": "400", "tipo": "fijo", "valor": "145" },
+        { "desde": "400", "hasta": "450", "tipo": "fijo", "valor": "175" },
+        { "desde": "450", "hasta": "500", "tipo": "fijo", "valor": "185" },
+        { "desde": "500", "hasta": "550", "tipo": "fijo", "valor": "205" },
+        { "desde": "550", "hasta": "600", "tipo": "fijo", "valor": "210" },
+        { "desde": "600", "hasta": "700", "tipo": "fijo", "valor": "240" },
+        { "desde": "700", "hasta": "800", "tipo": "fijo", "valor": "270" },
+        { "desde": "800", "hasta": "900", "tipo": "fijo", "valor": "295" },
+        { "desde": "900", "hasta": "1000", "tipo": "fijo", "valor": "320" },
+        { "desde": "1000", "hasta": "1200", "tipo": "fijo", "valor": "375" },
+        { "desde": "1200", "hasta": "1300", "tipo": "fijo", "valor": "395" },
+        { "desde": "1300", "hasta": "1400", "tipo": "fijo", "valor": "410" },
+        { "desde": "1400", "hasta": "1500", "tipo": "fijo", "valor": "430" },
+        { "desde": "1500", "hasta": "1600", "tipo": "fijo", "valor": "445" },
+        { "desde": "1600", "hasta": "1700", "tipo": "fijo", "valor": "465" },
+        { "desde": "1700", "hasta": "1800", "tipo": "fijo", "valor": "485" },
+        { "desde": "1800", "hasta": "2000", "tipo": "fijo", "valor": "510" },
+        { "desde": "2000", "hasta": "2400", "tipo": "fijo", "valor": "535" },
+        { "desde": "2400", "hasta": "2500", "tipo": "fijo", "valor": "570" },
+        { "desde": "2500", "hasta": "3000", "tipo": "fijo", "valor": "610" },
+        { "desde": "3000", "hasta": "3500", "tipo": "fijo", "valor": "655" },
+        { "desde": "3500", "hasta": "4000", "tipo": "fijo", "valor": "705" },
+        { "desde": "4000", "hasta": "4500", "tipo": "fijo", "valor": "725" },
+        { "desde": "4500", "hasta": "5000", "tipo": "fijo", "valor": "750" },
+        { "desde": "5000", "hasta": "5500", "tipo": "fijo", "valor": "775" },
+        { "desde": "5500", "hasta": "6000", "tipo": "fijo", "valor": "800" },
+        { "desde": "6000", "hasta": "6500", "tipo": "fijo", "valor": "825" },
+        { "desde": "6500", "hasta": "7000", "tipo": "fijo", "valor": "845" },
+        { "desde": "7000", "hasta": "7500", "tipo": "fijo", "valor": "880" },
+        { "desde": "7500", "hasta": "8000", "tipo": "fijo", "valor": "900" },
+        { "desde": "8000", "hasta": "8500", "tipo": "fijo", "valor": "925" },
+        { "desde": "8500", "hasta": "10000", "tipo": "fijo", "valor": "945" },
+        { "desde": "10000", "hasta": "15000", "tipo": "fijo", "valor": "1000" },
+        { "desde": "15000", "hasta": null, "tipo": "porcentaje", "valor": "7.5" }
+      ],
+      "cargos": [
+        {
+          "codigo": "internet_bid_fee",
+          "etiqueta": "Internet Bid Fee",
+          "monto": "110",
+          "modalidad": "internet_live",
+          "desde": "2000",
+          "hasta": "4000",
+          "estado": "caso_real"
+        },
+        {
+          "codigo": "internet_bid_fee",
+          "etiqueta": "Internet Bid Fee",
+          "monto": "125",
+          "modalidad": "internet_live",
+          "desde": "4000",
+          "hasta": "4001",
+          "estado": "caso_real"
+        },
+        {
+          "codigo": "service_fee",
+          "etiqueta": "Service Fee",
+          "monto": "105",
+          "modalidad": "internet_live",
+          "desde": "2000",
+          "hasta": "4001",
+          "estado": "caso_real"
+        },
+        {
+          "codigo": "environmental_fee",
+          "etiqueta": "Environmental Fee",
+          "monto": "25",
+          "modalidad": "internet_live",
+          "desde": "2000",
+          "hasta": "4001",
+          "estado": "caso_real"
+        },
+        {
+          "codigo": "title_handling_fee",
+          "etiqueta": "Title Handling Fee",
+          "monto": "20",
+          "modalidad": "internet_live",
+          "desde": "2000",
+          "hasta": "4001",
+          "estado": "caso_real"
+        }
+      ]
+    }
+  ]
 }

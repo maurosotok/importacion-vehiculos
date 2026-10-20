@@ -1,0 +1,55 @@
+{
+  "fixture_id": "caso_107_honda_crv_ex_2011",
+  "source": "Datos entregados por el usuario (2026-10-20). No proviene de Carros.xlsx ni modifica el caso 104.",
+  "business_record_id": 107,
+  "vin": "3CZRE3H59BG700764",
+  "make": "Honda",
+  "model_as_provided": "CR-V EX",
+  "year": 2011,
+  "auction": "IAA",
+  "location": "Tampa North (FL)",
+  "vehicle_type": "SUV_CAMIONETA",
+  "fee_profile": "iaa_standard_volume",
+  "fee_table_version": "standard_volume_vigente_2024-11-04",
+  "fee_table_fecha_fuente": "2024-11-04",
+  "modalidad_puja": "internet_live",
+  "inputs": {
+    "bid_usd": "2000",
+    "fees_breakdown_usd": {
+      "buyer_fee": "535",
+      "internet_bid_fee": "110",
+      "service_fee": "105",
+      "environmental_fee": "25",
+      "title_handling_fee": "20"
+    },
+    "fees_total_usd": "795",
+    "carro_mas_fees_usd": "2795",
+    "towing_usd": "225",
+    "towing_source": "gruas_desde_excel: IAA Tampa North (FL), zona FLORIDA, US$225",
+    "ocean_usd": "825",
+    "ocean_source": "embarques_referencia_2025: North Atlantic, FLORIDA, SUV_CAMIONETA, US$825",
+    "paperwork_usd": "15",
+    "exchange_rate_hnl_per_usd": "27.0281",
+    "tax_manual_hnl": "48989.01",
+    "local_expenses_hnl": "13557.00",
+    "repair_budget_hnl": "20000",
+    "expected_sale_hnl": "220000"
+  },
+  "expected": {
+    "cash_usd": "3860.00",
+    "tax_plus_local_hnl": "62546.01",
+    "imported_hnl": "166874.48",
+    "investment_hnl": "186874.48",
+    "profit_hnl": "33125.52",
+    "imported_usd_equivalent": "6174.11"
+  },
+  "excel_comparison": {
+    "original_total_hnl": "152912.0545",
+    "difference_hnl": "13962.4215",
+    "difference_explained_by": {
+      "local_expenses_hnl": "13557.00",
+      "paperwork_usd_times_fx_hnl": "405.4215"
+    },
+    "note": "El Excel original no sumaba la papelería en HNL. Evidencia, no oráculo monetario."
+  }
+}

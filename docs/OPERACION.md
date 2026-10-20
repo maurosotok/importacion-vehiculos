@@ -26,9 +26,10 @@ contra producción. Los resultados verificados en el repositorio están en `docs
   - 9 perfiles tienen `fee_table_status: not_bundled`: sin tabla de tramos cargada. Son
     seleccionables y el usuario captura el total manual; no se muestran importes inventados.
   - 1 perfil está marcado `manual`.
-- Las tablas oficiales IAA y Copart no están cargadas. Para cargarlas se capturan a mano en
-  `data/catalogos/tablas_fees_manual.json`, con fuente y fecha por versión, y luego se importan.
-  No se accede a sitios de subasta para esto.
+- Tabla IAA Standard Volume: capturada a mano en `data/catalogos/tablas_fees_manual.json`
+  (`captura_manual`), con vigencia 2024-11-04 (`fechaFuente`). Pendiente confirmarla contra la
+  fuente oficial. `catalogos:importar` la inserta como versión pendiente de verificación. Copart no
+  está cargada. No se accede a sitios de subasta para esto.
 - Las grúas tienen 282 filas. La comparación fila por fila contra el PDF sigue pendiente; la fila 29
   (USD 350 en el PDF, sin importe en el catálogo) está listada en `docs/RECONCILIACION_TARIFAS.md`.
 - Las tarifas de referencia se usan sin advertencia y sin bloquear; su antigüedad se muestra en el
@@ -44,6 +45,9 @@ contra producción. Los resultados verificados en el repositorio están en `docs
 - Cambiar la puja, el flete o el tipo de cambio conserva el impuesto manual y muestra un aviso
   informativo; no exige recalcular ni confirmar.
 - Un impuesto no ingresado deja la cotización en estado pendiente. No se trata como cero.
+- Gastos locales y salida: 13,557 HNL es un valor predeterminado editable por usuario en
+  Configuración. Se copia a cada cotización nueva al crearla; cambiarlo después no modifica
+  cotizaciones existentes. No es una regla por año.
 
 ## 4. Copia de seguridad y restauración
 - Ensayo de restauración (sin tocar producción): `npm run db:ensayar-restauracion`.
@@ -76,6 +80,10 @@ contra producción. Los resultados verificados en el repositorio están en `docs
   revisión manual.
 - Publicar solo con autorización explícita: GitHub > Actions > "Publicar producción" > escribir
   `PUBLICAR`. Sin esa palabra el workflow se detiene en el primer paso.
+- Las variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` del build se leen de las
+  variables del entorno `produccion` de GitHub (`vars`), no de `.env.local`.
+- Publicar aplica en producción las migraciones pendientes con `supabase db push`. Hoy eso incluye
+  `20261020000100_fees_desglose_y_defaults.sql`, que solo existe en local. Requiere autorización.
 - Orden del workflow: confirmación, calidad (`lint`, `typecheck`, `test`, verificación de
   migraciones), pruebas de BD en PostgreSQL 17 efímero, compilación con el SHA del commit,
   `supabase db push` sin reset, despliegue de la función `version`, despliegue de Pages con
@@ -86,16 +94,18 @@ contra producción. Los resultados verificados en el repositorio están en `docs
   La función `version` responde 401 o 403 sin sesión.
 
 ## 7. Limitaciones reales (a fecha de esta entrega)
-- La pantalla de cotización (`EditorCotizacion`) todavía usa el flujo anterior. No está conectada
-  al motor nuevo: no tiene selector de perfil de fees, modos de fees e impuestos, tipo de vehículo
-  sin medidas, comparador de navieras ni campos opcionales. Esta es la principal pieza pendiente
-  para usar el sistema de punta a punta.
+- El editor de cotización usa la tabla de fees (perfil, modalidad, "Volver a tarifa automática" y
+  desglose guardado). No se ha probado en navegador. Grúa y barco se sugieren al cambiar ubicación
+  o zona.
+- Papelería por naviera: no implementada. Solo existe la papelería general predeterminada.
+- Precio de venta sugerido desde Mercado: no conectado al editor de cotización.
 - `marcar_comprado` recibe el snapshot desde el cliente y no lo recalcula en el servidor.
 - Las revisiones inmutables no tienen todavía una función de servidor que las confirme.
 - La interfaz de Compra, Repuestos y Mercado no se ha probado en navegador: no hay credenciales
   de Supabase ni `.env` en este entorno.
 - La concurrencia de `marcar_comprado` no está probada (el harness usa un solo cliente).
-- vPIC no está conectado al formulario. Un VIN incompleto o una respuesta fallida no bloquean.
+- vPIC está conectado al editor (consulta al completar 17 caracteres). Las llamadas reales no se
+  han ejecutado. Un VIN incompleto o una respuesta fallida no bloquean.
 - Supabase CLI no se ha ejecutado contra un proyecto; el workflow no se ha ejecutado en GitHub.
 - No se ha desplegado ni publicado nada. No hay URL pública verificada.
 - La carpeta `Python/` (distribución de Python 3.15, 2399 archivos) está rastreada en el commit

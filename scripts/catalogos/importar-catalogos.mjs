@@ -146,6 +146,7 @@ export async function importarCatalogos(cliente, propietarioId, catalogos) {
         else resumen[tabla].ya_existian += 1;
       }
     }
+    resumen.fee_schedule_versions = await importarVersionesFees(cliente, propietarioId, datos.tablasFees);
     await cliente.query('commit');
   } catch (error) {
     await cliente.query('rollback');
@@ -154,8 +155,28 @@ export async function importarCatalogos(cliente, propietarioId, catalogos) {
   return resumen;
 }
 
+async function importarVersionesFees(cliente, propietarioId, catalogoTablas) {
+  const resumen = { insertados: 0, ya_existian: 0 };
+  for (const version of catalogoTablas.versiones) {
+    const insertado = await cliente.query(
+      `insert into public.fee_schedule_versions
+         (owner_id, fee_profile_clave, etiqueta_version, vigente_desde, es_activa, estado_verificacion, notas, contenido)
+       values ($1, $2, $3, $4,
+         not exists (select 1 from public.fee_schedule_versions
+                     where owner_id = $1 and fee_profile_clave = $2 and es_activa),
+         'pendiente', $5, $6)
+       on conflict (owner_id, fee_profile_clave, etiqueta_version) do nothing
+       returning 1`,
+      [propietarioId, version.perfilId, version.version, version.fechaFuente, version.fuente, JSON.stringify(version)],
+    );
+    if (insertado.rowCount === 1) resumen.insertados += 1;
+    else resumen.ya_existian += 1;
+  }
+  return resumen;
+}
+
 async function cargarCatalogosDesdeDisco() {
-  const [perfiles, gruas, embarques, navieras, proveedores, tipos, preferencias] = await Promise.all([
+  const [perfiles, gruas, embarques, navieras, proveedores, tipos, preferencias, tablasFees] = await Promise.all([
     leerCatalogo('perfiles_fees.json'),
     leerCatalogo('gruas_desde_excel.json'),
     leerCatalogo('embarques_referencia_2025.json'),
@@ -163,8 +184,9 @@ async function cargarCatalogosDesdeDisco() {
     leerCatalogo('proveedores_repuestos.json'),
     leerCatalogo('tipos_vehiculo.json'),
     leerCatalogo('preferencias_iniciales.json'),
+    leerCatalogo('tablas_fees_manual.json'),
   ]);
-  return { perfiles, gruas, embarques, navieras, proveedores, tipos, preferencias };
+  return { perfiles, gruas, embarques, navieras, proveedores, tipos, preferencias, tablasFees };
 }
 
 async function principal() {

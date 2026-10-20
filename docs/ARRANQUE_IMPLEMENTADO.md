@@ -3,6 +3,15 @@
 Este documento lista lo que ya existe en el repositorio y los pasos manuales que quedan.
 No hay despliegue realizado. Ningún comando de esta página se ejecutó contra producción.
 
+Estado por etiqueta (detalle y comandos con exit code en `docs/ESTADO.md`):
+- Implementado: motor de fees IAA Standard Volume, grúa y barco automáticas, impuestos manuales,
+  gastos locales predeterminados, editor conectado a la tabla de fees.
+- Probado unitariamente: motor, fees, caso 107, lógica del editor (`npm test`).
+- Probado con BD: esquema y RLS en PostgreSQL 17 embebido (`npm run test:bd`, `npm run db:ensayar-restauracion`).
+- Probado en navegador: no. Pendiente de credenciales de un proyecto de prueba.
+- Pendiente de autorización: aplicar la migración `20261020000100` y cualquier cambio remoto; publicar.
+- No implementado: recálculo en servidor (S02), confirmación de revisiones en servidor (S03), papelería por naviera, sugerencia de precio desde Mercado en el editor.
+
 ## Comandos locales
 
 Requisitos: Node 24 (`.nvmrc`). No se requiere Docker ni WSL.
@@ -12,7 +21,7 @@ npm ci
 npm run dev                   # aplicación local con VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY en .env.local
 npm run typecheck
 npm run lint
-npm test                      # motores y pruebas de interfaz pura (130 pruebas en la última ejecución registrada en docs/ESTADO.md)
+npm test                      # motores y pruebas de interfaz pura
 npm run test:bd               # PostgreSQL 17 embebido, sin Docker; usa DATABASE_URL + PRUEBAS_BD_EFIMERAS=si en CI
 npm run db:verificar-migraciones
 npm run build                 # genera dist/ y dist/version.json
@@ -48,7 +57,11 @@ Revertir el frontend en Pages no restaura la base de datos. Las migraciones debe
 
 ## Pendiente de esta entrega
 
+- Migración `20261020000100_fees_desglose_y_defaults.sql`: solo en local. Se aplica en producción
+  con `supabase db push` al publicar, o a mano antes, con autorización explícita.
+- Catálogo IAA Standard Volume (`tablas_fees_manual.json`): no importado en ningún proyecto. Copart sin cargar.
 - Función de servidor que recalcula y persiste revisiones inmutables (`quote_revisions`). El frontend no crea revisiones todavía.
+- Papelería por naviera y sugerencia de precio desde Mercado en el editor: no implementadas.
 - Validación con Supabase CLI de migraciones y `config.toml`; versión de CLI fijada en el workflow sin verificar localmente.
 - Validación sintáctica del YAML del workflow.
 - Primer despliegue real y smoke contra la URL pública.

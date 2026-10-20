@@ -20,6 +20,7 @@ const ESPERADOS_CATALOGO = {
   logistics_providers: 4,
   suppliers: 45,
   user_settings: 1,
+  fee_schedule_versions: 1,
 };
 
 async function iniciarBaseDeDatos() {
@@ -281,9 +282,12 @@ const PRUEBAS = [
     id: 'S05',
     nombre: 'Solo una versión de fees activa por perfil',
     async ejecutar({ cliente, usuarios }) {
-      const primera = await intentar(cliente, `insert into public.fee_schedule_versions (owner_id, fee_profile_clave, etiqueta_version, es_activa)
-        values ($1, 'iaa_standard_volume', 'v1', true)`, [usuarios.propietario]);
-      assert.equal(primera.ok, true, primera.mensaje);
+      const activas = await cliente.query(
+        `select count(*)::int as n from public.fee_schedule_versions
+         where owner_id = $1 and fee_profile_clave = 'iaa_standard_volume' and es_activa`,
+        [usuarios.propietario],
+      );
+      assert.equal(activas.rows[0].n, 1, 'la importación deja exactamente una versión activa');
       const segunda = await intentar(cliente, `insert into public.fee_schedule_versions (owner_id, fee_profile_clave, etiqueta_version, es_activa)
         values ($1, 'iaa_standard_volume', 'v2', true)`, [usuarios.propietario]);
       assert.equal(segunda.codigo, '23505');

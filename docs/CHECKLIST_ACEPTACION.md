@@ -32,11 +32,13 @@ Estados:
 | F01 | Pendiente UI | `data/catalogos/perfiles_fees.json` tiene IAA como predeterminado | Selección por usuario nuevo en pantalla |
 | F02 | Pendiente UI | Sin prueba | Recordar perfil Copart en pantalla |
 | F03 | Parcial | Pasa (motor) `fees.test.ts`: sin tabla devuelve `sin_tabla`, nunca cero | Perfil seleccionable con total manual en pantalla |
-| F04 | Parcial | Pasa (motor) `fees.test.ts`: cortes exactos, justo debajo y redondeo del porcentaje | Cobertura de todos los cortes de la tabla oficial (no cargada) |
+| F04 | Parcial | Pasa (motor) `fees.test.ts` y `caso107.test.ts`: cortes exactos, justo debajo, redondeo del porcentaje; tabla IAA Standard Volume con vigencia 2024-11-04 (`captura_manual`; 2024-10-23 solo es el nombre del archivo) | Confirmar la transcripción con la fuente oficial; procedencia en pantalla |
 | F05 | No verificado | Sin prueba explícita | Confirmar que no se duplican componentes ni se confunde papelería |
 | F06 | Pasa (motor) | `calculo.test.ts`: carro+fees 2995 con puja 2200 da fee 795 | — |
 | F07 | Parcial | Pasa (motor) `fees.test.ts`: fee manual gana y se marca manual | Procedencia visible en pantalla; tabla oficial no cargada |
 | F08 | Pasa (motor) | `calculo.test.ts`: puja mayor no deriva fee negativo y avisa | — |
+| F10 | Pasa (motor) | `caso107.test.ts`: puja 2000 reproduce fees 795 (535+110+105+25+20), carro+fees 2795, efectivo 3860, importado 166874.48, utilidad 33125.52 | Mismos valores en el editor, en navegador |
+| F11 | Pasa (motor) | `caso107.test.ts`: puja 4500, fuera de la cobertura de los cargos, devuelve `cargo_sin_cobertura`, no un total parcial. La puja 2500 sí está cubierta: tramo 610 + 110 + 105 + 25 + 20 = 870 | Fees pendientes con entrada manual en pantalla |
 | T01 | Pasa (inspección) | Búsqueda en `src/`, `supabase/` y `scripts/`: no hay llamadas a SARAH ni cálculo fiscal por año, motor u origen | Sin prueba automatizada; `scripts/verificar_paquete.py` solo comprueba que no hay algoritmo previo empaquetado y no se ejecutó en esta ronda |
 | T02 | Pasa (motor) | `calculo.test.ts`: cambiar puja conserva impuesto manual con avisos | Nota en pantalla |
 | T03 | Pasa (motor) | `calculo.test.ts`: total combinado 50297.89 se suma una vez | — |
@@ -80,6 +82,6 @@ Estados:
 
 ## Resumen
 - Motor y BD: los casos de dinero, fees, impuestos manuales, compras y seguridad de datos tienen pruebas que pasan.
-- Bloqueante principal: `EditorCotizacion` no usa el motor nuevo; casi todos los casos UX, de selección de perfil y de impuestos en pantalla siguen sin verificar.
+- `EditorCotizacion` ya usa la tabla de fees y el motor nuevo (sin prueba en navegador). Faltan las pruebas en pantalla de UX, perfiles, impuestos, grúa y barco.
 - No cumplidos: recálculo de servidor en `marcar_comprado` (S02) y confirmación servidor de revisiones (S03).
 - Pendiente en vivo: publicación, registro público en Supabase real, URL de Pages, pruebas en navegador.
