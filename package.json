@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:bd": "node scripts/db/ejecutar-pruebas-bd.mjs",
     "db:verificar-migraciones": "node scripts/db/verificar-migraciones.mjs",
+    "db:ensayar-restauracion": "node scripts/db/ensayar-restauracion.mjs",
     "catalogos:importar": "node scripts/catalogos/importar-catalogos.mjs",
     "admin:alta-propietario": "node scripts/admin/alta-propietario.mjs",
     "smoke:produccion": "node scripts/smoke-produccion.mjs"

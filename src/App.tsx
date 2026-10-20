@@ -4,7 +4,9 @@ import { configuracionCompleta, supabase } from './lib/supabase';
 import { useRuta } from './lib/ruta';
 import { Acceso } from './paginas/Acceso';
 import { Vehiculos } from './paginas/Vehiculos';
+import { Mercado } from './paginas/Mercado';
 import { EditorCotizacion } from './paginas/EditorCotizacion';
+import { Compra } from './paginas/Compra';
 import { Repuestos } from './paginas/Repuestos';
 import { Configuracion } from './paginas/Configuracion';
 import { irA } from './lib/ruta';
@@ -79,7 +81,8 @@ export function App() {
     );
   }
 
-  const seccionActiva = ruta.nombre === 'cotizacion' ? 'vehiculos' : ruta.nombre;
+  const seccionActiva = ruta.nombre === 'cotizacion' || ruta.nombre === 'compra' || ruta.nombre === 'mercado' ? 'vehiculos' : ruta.nombre;
+  const subseccionActiva = ruta.nombre === 'mercado' ? 'mercado' : 'cotizaciones';
   return (
     <div className="aplicacion">
       <header className="barra">
@@ -122,9 +125,62 @@ export function App() {
           Salir
         </button>
       </header>
+      {seccionActiva === 'vehiculos' && (
+        <nav className="subnav" aria-label="Vehículos">
+          <button
+            type="button"
+            aria-current={subseccionActiva === 'cotizaciones'}
+            onClick={() => {
+              irA('#/vehiculos');
+            }}
+          >
+            Cotizaciones
+          </button>
+          <button
+            type="button"
+            aria-current={subseccionActiva === 'mercado'}
+            onClick={() => {
+              irA('#/vehiculos/mercado');
+            }}
+          >
+            Mercado
+          </button>
+          {ruta.nombre === 'cotizacion' && (
+            <>
+              <span className="subnav-separador" aria-hidden="true">/</span>
+              <button
+                type="button"
+                onClick={() => {
+                  irA(`#/vehiculos/${ruta.id}/compra`);
+                }}
+              >
+                Compra
+              </button>
+            </>
+          )}
+          {ruta.nombre === 'compra' && (
+            <>
+              <span className="subnav-separador" aria-hidden="true">/</span>
+              <button
+                type="button"
+                onClick={() => {
+                  irA(`#/vehiculos/${ruta.id}`);
+                }}
+              >
+                Cotización
+              </button>
+              <button type="button" aria-current="true">
+                Compra
+              </button>
+            </>
+          )}
+        </nav>
+      )}
       <main className="contenido">
         {ruta.nombre === 'vehiculos' && <Vehiculos />}
+        {ruta.nombre === 'mercado' && <Mercado />}
         {ruta.nombre === 'cotizacion' && <EditorCotizacion key={ruta.id} id={ruta.id} />}
+        {ruta.nombre === 'compra' && <Compra key={ruta.id} id={ruta.id} />}
         {ruta.nombre === 'repuestos' && <Repuestos />}
         {ruta.nombre === 'configuracion' && <Configuracion usuarioId={estado.sesion.user.id} />}
       </main>

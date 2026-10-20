@@ -12,7 +12,7 @@ npm ci
 npm run dev                   # aplicación local con VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY en .env.local
 npm run typecheck
 npm run lint
-npm test                      # motor de cálculo, 16 pruebas
+npm test                      # motores y pruebas de interfaz pura (130 pruebas en la última ejecución registrada en docs/ESTADO.md)
 npm run test:bd               # PostgreSQL 17 embebido, sin Docker; usa DATABASE_URL + PRUEBAS_BD_EFIMERAS=si en CI
 npm run db:verificar-migraciones
 npm run build                 # genera dist/ y dist/version.json

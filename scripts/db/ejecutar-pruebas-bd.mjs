@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 import { importarCatalogos } from '../catalogos/importar-catalogos.mjs';
-import { CARPETA_MIGRACIONES, listarMigraciones } from './verificar-migraciones.mjs';
+import { aplicarMigraciones } from './esquema-local.mjs';
 
 const PUERTO_LOCAL = 54329;
 const CLAVE_LOCAL = 'prueba-local-no-productiva';
@@ -21,22 +21,6 @@ const ESPERADOS_CATALOGO = {
   suppliers: 45,
   user_settings: 1,
 };
-
-const STUB_AUTH = `
-create schema if not exists auth;
-create table if not exists auth.users (id uuid primary key default gen_random_uuid(), email text);
-create or replace function auth.uid() returns uuid language sql stable as $$
-  select nullif(
-    coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', ''),
-    ''
-  )::uuid;
-$$;
-do $$ begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
-end $$;
-grant usage on schema public, auth to anon, authenticated;
-`;
 
 async function iniciarBaseDeDatos() {
   const url = process.env.DATABASE_URL;
@@ -75,16 +59,6 @@ async function iniciarBaseDeDatos() {
       await rm(dir, { recursive: true, force: true });
     },
   };
-}
-
-async function aplicarMigraciones(cliente) {
-  await cliente.query(STUB_AUTH);
-  const { nombres, problemas } = await listarMigraciones();
-  if (problemas.length > 0) throw new Error(problemas.join('\n'));
-  for (const nombre of nombres) {
-    await cliente.query(await readFile(path.join(CARPETA_MIGRACIONES, nombre), 'utf8'));
-  }
-  return nombres;
 }
 
 async function intentar(cliente, sql, params = []) {
@@ -178,6 +152,20 @@ async function crearDatos(cliente, usuarios) {
     gasto: gasto.id,
     perfilAjeno: perfilAjeno.clave,
   };
+}
+
+const SNAPSHOT_VALIDO = JSON.stringify({
+  version: '1',
+  entradas: { tipoCambioHnlPorUsd: '25', reparacionHnl: '5000' },
+  resultado: { importadoHnl: '100', importadoUsdEquivalente: '4', utilidadHnl: null },
+});
+
+async function cotizacionNueva(cliente, owner, vehiculo) {
+  const { rows } = await cliente.query(
+    'insert into public.quotes (owner_id, vehicle_id) values ($1, $2) returning id',
+    [owner, vehiculo],
+  );
+  return rows[0].id;
 }
 
 const PRUEBAS = [
@@ -317,6 +305,136 @@ const PRUEBAS = [
       const resultado = await intentar(cliente, `insert into public.purchase_expenses (owner_id, purchase_id, concepto, monto, moneda, oferta_repuesto_id)
         values ($1, $2, 'repuesto', 10, 'USD', $3)`, [usuarios.propietario, datos.compra, datos.oferta]);
       assert.equal(resultado.codigo, '23505');
+    },
+  },
+  {
+    id: 'M01',
+    nombre: 'Un usuario que no es propietario no puede marcar cotizaciones como compradas',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const cotizacion = await cotizacionNueva(cliente, usuarios.propietario, datos.vehiculoPropio);
+      const resultado = await comoRol(cliente, 'authenticated', usuarios.externo, () =>
+        intentar(cliente, 'select public.marcar_comprado($1, $2, $3::jsonb)', [cotizacion, 'calculo-1', SNAPSHOT_VALIDO]),
+      );
+      assert.equal(resultado.codigo, '42501', resultado.mensaje);
+    },
+  },
+  {
+    id: 'M02',
+    nombre: 'Marcar una cotización ajena no crea compra',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const ajena = await cotizacionNueva(cliente, usuarios.ajeno, datos.vehiculoAjeno);
+      const resultado = await comoRol(cliente, 'authenticated', usuarios.propietario, () =>
+        intentar(cliente, 'select public.marcar_comprado($1, $2, $3::jsonb)', [ajena, 'calculo-1', SNAPSHOT_VALIDO]),
+      );
+      assert.equal(resultado.codigo, 'P0002', resultado.mensaje);
+      const { rows } = await cliente.query('select count(*)::int as n from public.purchases where quote_id = $1', [ajena]);
+      assert.equal(rows[0].n, 0);
+    },
+  },
+  {
+    id: 'M03',
+    nombre: 'Una revisión con versión desconocida se rechaza antes de crear compra',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const cotizacion = await cotizacionNueva(cliente, usuarios.propietario, datos.vehiculoPropio);
+      const snapshot = JSON.stringify({ ...JSON.parse(SNAPSHOT_VALIDO), version: '2' });
+      const resultado = await comoRol(cliente, 'authenticated', usuarios.propietario, () =>
+        intentar(cliente, 'select public.marcar_comprado($1, $2, $3::jsonb)', [cotizacion, 'calculo-1', snapshot]),
+      );
+      assert.equal(resultado.codigo, '22023', resultado.mensaje);
+    },
+  },
+  {
+    id: 'M04',
+    nombre: 'Marcar dos veces devuelve la misma compra, sin revisiones ni gastos duplicados',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const cotizacion = await cotizacionNueva(cliente, usuarios.propietario, datos.vehiculoPropio);
+      await comoRol(cliente, 'authenticated', usuarios.propietario, async () => {
+        const primera = await cliente.query('select public.marcar_comprado($1, $2, $3::jsonb) as id', [cotizacion, 'calculo-1', SNAPSHOT_VALIDO]);
+        const segunda = await cliente.query('select public.marcar_comprado($1, $2, $3::jsonb) as id', [cotizacion, 'calculo-1', SNAPSHOT_VALIDO]);
+        assert.equal(segunda.rows[0].id, primera.rows[0].id);
+        const compras = await cliente.query('select count(*)::int as n from public.purchases where quote_id = $1', [cotizacion]);
+        assert.equal(compras.rows[0].n, 1);
+        const revisiones = await cliente.query('select count(*)::int as n from public.quote_revisions where quote_id = $1', [cotizacion]);
+        assert.equal(revisiones.rows[0].n, 1);
+        const compra = await cliente.query(
+          'select presupuesto_reparacion_hnl::text as presupuesto, tipo_cambio_origen_hnl_por_usd::text as tipo_cambio from public.purchases where id = $1',
+          [primera.rows[0].id],
+        );
+        assert.equal(compra.rows[0].presupuesto, '5000.0000');
+        assert.equal(compra.rows[0].tipo_cambio, '25.000000');
+        const gastos = await cliente.query('select count(*)::int as n from public.purchase_expenses where purchase_id = $1', [primera.rows[0].id]);
+        assert.equal(gastos.rows[0].n, 0, 'Marcar comprado no debe convertir presupuestos en gastos');
+      });
+    },
+  },
+  {
+    id: 'M05',
+    nombre: 'Una cotización ya comprada no crea una segunda revisión',
+    async ejecutar({ cliente, usuarios, datos }) {
+      await comoRol(cliente, 'authenticated', usuarios.propietario, async () => {
+        const { rows } = await cliente.query('select public.marcar_comprado($1, $2, $3::jsonb) as id', [datos.cotizacion, 'calculo-1', SNAPSHOT_VALIDO]);
+        assert.equal(rows[0].id, datos.compra);
+        const revisiones = await cliente.query('select count(*)::int as n from public.quote_revisions where quote_id = $1', [datos.cotizacion]);
+        assert.equal(revisiones.rows[0].n, 1);
+      });
+    },
+  },
+  {
+    id: 'M06',
+    nombre: 'Una oferta no disponible no conserva precio',
+    async ejecutar({ cliente, datos }) {
+      const resultado = await intentar(cliente, `update public.part_supplier_offers set estado = 'no_disponible' where id = $1`, [datos.oferta]);
+      assert.equal(resultado.codigo, '23514', resultado.mensaje);
+    },
+  },
+  {
+    id: 'M07',
+    nombre: 'Un reparto sin motivo se rechaza',
+    async ejecutar({ cliente, datos }) {
+      const resultado = await intentar(cliente, 'update public.purchase_expenses set monto_total_referencia = 20 where id = $1', [datos.gasto]);
+      assert.equal(resultado.codigo, '23514', resultado.mensaje);
+    },
+  },
+  {
+    id: 'M08',
+    nombre: 'Un reparto no puede exceder su total de referencia',
+    async ejecutar({ cliente, datos }) {
+      const resultado = await intentar(
+        cliente,
+        `update public.purchase_expenses set monto_total_referencia = 5, motivo_reparto = 'Socio' where id = $1`,
+        [datos.gasto],
+      );
+      assert.equal(resultado.codigo, '23514', resultado.mensaje);
+    },
+  },
+  {
+    id: 'M09',
+    nombre: 'El concepto pintura se acepta y un concepto desconocido se rechaza',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const aceptado = await intentar(cliente, `insert into public.purchase_expenses (owner_id, purchase_id, concepto, monto, moneda)
+        values ($1, $2, 'pintura', 1, 'USD')`, [usuarios.propietario, datos.compra]);
+      assert.equal(aceptado.ok, true, aceptado.mensaje);
+      const rechazado = await intentar(cliente, `insert into public.purchase_expenses (owner_id, purchase_id, concepto, monto, moneda)
+        values ($1, $2, 'desconocido', 1, 'USD')`, [usuarios.propietario, datos.compra]);
+      assert.equal(rechazado.codigo, '23514', rechazado.mensaje);
+    },
+  },
+  {
+    id: 'M10',
+    nombre: 'Las observaciones de mercado no son visibles para otro usuario',
+    async ejecutar({ cliente, usuarios }) {
+      await cliente.query(
+        `insert into public.market_observations (owner_id, marca, modelo, precio_usd) values ($1, 'Toyota', 'Corolla', 9000)`,
+        [usuarios.propietario],
+      );
+      const externo = await comoRol(cliente, 'authenticated', usuarios.externo, () =>
+        cliente.query('select id from public.market_observations'),
+      );
+      assert.equal(externo.rows.length, 0);
+      const propietario = await comoRol(cliente, 'authenticated', usuarios.propietario, () =>
+        cliente.query('select id from public.market_observations'),
+      );
+      assert.ok(propietario.rows.length >= 1);
     },
   },
   {

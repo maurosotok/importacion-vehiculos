@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import Decimal from 'decimal.js';
 import casoTexto from '../../data/fixtures/caso_104.json?raw';
 import { calcularCotizacion, type EntradasCotizacion } from './calculo';
 
@@ -13,6 +14,12 @@ type CasoFixture = {
     manual_combined_landing_hnl: string;
     repair_budget_hnl: string;
     expected_sale_hnl: string;
+  };
+  legacy_expected: {
+    car_plus_fees_usd: string;
+    total_usd_display: string;
+    total_hnl_unrounded: string;
+    profit_hnl_unrounded: string;
   };
   new_calculation_explicit_change: {
     cash_components_usd: string;
@@ -59,6 +66,16 @@ describe('caso 104 desde data/fixtures/caso_104.json', () => {
     expect(r.inversionHnl?.toFixed(2)).toBe(esperado.with_repair_hnl_display);
     expect(r.utilidadHnl?.toFixed(2)).toBe(esperado.profit_hnl_display);
     expect(r.utilidadTipo).toBe('final');
+  });
+
+  it('la diferencia con el Excel original es solo la papelería omitida en W101 y el K101 duplicado en V101', () => {
+    const legado = caso.legacy_expected;
+    const r = calcularCotizacion(entradas);
+    const difHnl = r.importadoHnl?.minus(legado.total_hnl_unrounded);
+    expect(difHnl?.toFixed(3)).toBe(new Decimal(caso.inputs.paperwork_usd).times(caso.inputs.exchange_rate_hnl_per_usd).toFixed(3));
+    expect(difHnl?.toFixed(3)).toBe('405.432');
+    const difUsd = new Decimal(legado.total_usd_display).minus(r.importadoUsdEquivalente ?? 0);
+    expect(difUsd.toFixed(2)).toBe(new Decimal(legado.car_plus_fees_usd).toFixed(2));
   });
 
   it('no usa el desglose: el total combinado 50297.89 se toma completo, sin inferir partes', () => {
