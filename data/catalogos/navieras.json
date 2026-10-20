@@ -1,0 +1,113 @@
+{
+  "schema_version": 2,
+  "providers": [
+    {
+      "id": "north-atlantic",
+      "name": "North Atlantic",
+      "owner_scoped": true,
+      "paperwork_default_usd": null,
+      "paperwork_reference_values": [
+        {
+          "cell": "H2",
+          "value": 15
+        },
+        {
+          "cell": "H6",
+          "value": 15
+        },
+        {
+          "cell": "H10",
+          "value": 15
+        },
+        {
+          "cell": "H14",
+          "value": 15
+        }
+      ],
+      "note": "Los valores observados de papelería son referencias históricas, no tarifa universal. El usuario puede fijar su predeterminado. No importar los viajes antiguos.",
+      "source_sheet": "Cotizacion gruas",
+      "source_file": "fuentes_privadas/Carros.xlsx"
+    },
+    {
+      "id": "carusa",
+      "name": "Carusa",
+      "owner_scoped": true,
+      "paperwork_default_usd": null,
+      "paperwork_reference_values": [
+        {
+          "cell": "H3",
+          "value": 0
+        },
+        {
+          "cell": "H7",
+          "value": null
+        },
+        {
+          "cell": "H13",
+          "value": null
+        },
+        {
+          "cell": "H16",
+          "value": null
+        }
+      ],
+      "note": "Los valores observados de papelería son referencias históricas, no tarifa universal. El usuario puede fijar su predeterminado. No importar los viajes antiguos.",
+      "source_sheet": "Cotizacion gruas",
+      "source_file": "fuentes_privadas/Carros.xlsx"
+    },
+    {
+      "id": "jl",
+      "name": "JL",
+      "owner_scoped": true,
+      "paperwork_default_usd": null,
+      "paperwork_reference_values": [
+        {
+          "cell": "H4",
+          "value": 11.5
+        },
+        {
+          "cell": "H8",
+          "value": 11.5
+        },
+        {
+          "cell": "H12",
+          "value": 11.5
+        },
+        {
+          "cell": "H15",
+          "value": 11.5
+        }
+      ],
+      "note": "Los valores observados de papelería son referencias históricas, no tarifa universal. El usuario puede fijar su predeterminado. No importar los viajes antiguos.",
+      "source_sheet": "Cotizacion gruas",
+      "source_file": "fuentes_privadas/Carros.xlsx"
+    },
+    {
+      "id": "matus",
+      "name": "Matus",
+      "owner_scoped": true,
+      "paperwork_default_usd": null,
+      "paperwork_reference_values": [
+        {
+          "cell": "H5",
+          "value": 20
+        },
+        {
+          "cell": "H9",
+          "value": 20
+        },
+        {
+          "cell": "H11",
+          "value": 20
+        },
+        {
+          "cell": "H17",
+          "value": 20
+        }
+      ],
+      "note": "Los valores observados de papelería son referencias históricas, no tarifa universal. El usuario puede fijar su predeterminado. No importar los viajes antiguos.",
+      "source_sheet": "Cotizacion gruas",
+      "source_file": "fuentes_privadas/Carros.xlsx"
+    }
+  ]
+}

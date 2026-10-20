@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "estado": "pendiente",
+  "nota": "Tarifas de fees IAA y Copart capturadas a mano desde fuentes oficiales. Hasta cargar una versión verificada, los perfiles usan importe manual o quedan pendientes. Claves en camelCase, igual que el motor (src/motor/fees.ts). convencionLimite: desde_incluido_hasta_excluido (por defecto) o desde_excluido_hasta_incluido. Cada versión debe declarar fuente y fechaFuente para estado verificada.",
+  "versiones": []
+}

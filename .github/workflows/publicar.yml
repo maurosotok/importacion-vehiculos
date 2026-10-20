@@ -1,0 +1,112 @@
+name: Publicar producción
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Escriba PUBLICAR para autorizar esta publicación'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: produccion
+  cancel-in-progress: false
+
+jobs:
+  confirmar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar confirmación explícita
+        env:
+          CONFIRMAR: ${{ inputs.confirmar }}
+        run: test "$CONFIRMAR" = "PUBLICAR"
+
+  calidad:
+    needs: confirmar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run db:verificar-migraciones
+
+  pruebas-bd:
+    needs: confirmar
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: prueba-efimera
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:prueba-efimera@localhost:5432/postgres
+      PRUEBAS_BD_EFIMERAS: si
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:bd
+
+  publicar:
+    needs: [calidad, pruebas-bd]
+    runs-on: ubuntu-latest
+    environment: produccion
+    env:
+      BUILD_SHA: ${{ github.sha }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Compilar frontend
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.54.11
+      - name: Aplicar migraciones compatibles (sin reset)
+        run: |
+          supabase link --project-ref "${{ vars.SUPABASE_PROJECT_ID }}"
+          supabase db push --linked --yes
+      - name: Publicar función version con el sha del commit
+        run: |
+          sed -i "s/VERSION_CONSTRUIDA = 'local'/VERSION_CONSTRUIDA = '$BUILD_SHA'/" supabase/functions/version/build.ts
+          supabase functions deploy version --project-ref "${{ vars.SUPABASE_PROJECT_ID }}"
+      - name: Publicar frontend en Cloudflare Pages (Direct Upload)
+        run: |
+          npx wrangler pages deploy dist \
+            --project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT }}" \
+            --branch main \
+            --commit-hash "$BUILD_SHA"
+      - name: Smoke de producción
+        env:
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+        run: npm run smoke:produccion

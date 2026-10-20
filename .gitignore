@@ -1,0 +1,19 @@
+# Private source material and operational backups: never publish
+fuentes_privadas/
+backups/
+exports/
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.supabase/
+supabase/.temp/
+.DS_Store
+Thumbs.db

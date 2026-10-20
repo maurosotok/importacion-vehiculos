@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "locale": "es-HN",
+  "timezone": "America/Tegucigalpa",
+  "default_auction": "IAA",
+  "default_fee_profile_id": "iaa_standard_volume",
+  "default_provider": "north-atlantic",
+  "tax_mode": "manual_total",
+  "tax_research_enabled": false,
+  "tax_api_enabled": false,
+  "manual_tax_amount_hnl": null,
+  "manual_local_expenses_hnl": null,
+  "combined_landing_amount_hnl": null,
+  "one_time_tax_quickfill_hnl": "10000.00",
+  "one_time_tax_auto_apply": false,
+  "local_expense_reference_range_hnl": [
+    "20000.00",
+    "21000.00"
+  ],
+  "local_expense_range_source": "latest_user_message_not_a_legal_rule",
+  "local_expenses_auto_apply": false,
+  "exchange_rate_hnl_per_usd": null,
+  "reference_rate_confirmations_required": false,
+  "required_dimensions": false,
+  "vehicle_default_type": null,
+  "seed_old_transactions": false,
+  "seed_old_market_prices": false,
+  "seed_old_part_quotes": false,
+  "startup_note": "La referencia de L20-21 mil para gastos locales y L10000 de pago único no se suma automáticamente. Elegir total combinado o desglose manual. El caso 104 conserva L50297.89 como total ingresado sin descomponer ni agregar otra partida fiscal."
+}

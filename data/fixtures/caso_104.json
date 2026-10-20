@@ -1,0 +1,269 @@
+{
+  "fixture_id": "quotes_id_104",
+  "source_file": "fuentes_privadas/Carros.xlsx",
+  "source_sheet": "Quotes",
+  "business_record_id": 104,
+  "excel_row": 101,
+  "vin": "5J6RE4H39BL018538",
+  "date": "2026-10-15",
+  "make": "Honda",
+  "model_as_provided": "CR-V LX",
+  "year": 2011,
+  "location": "Richmond (VA)",
+  "source_cells": [
+    {
+      "cell": "A101",
+      "header": "ID",
+      "formula": null,
+      "original_input": 104,
+      "cached_value": 104
+    },
+    {
+      "cell": "B101",
+      "header": "Marca",
+      "formula": null,
+      "original_input": "Honda",
+      "cached_value": "Honda"
+    },
+    {
+      "cell": "C101",
+      "header": "Modelo",
+      "formula": null,
+      "original_input": "CR-V LX",
+      "cached_value": "CR-V LX"
+    },
+    {
+      "cell": "D101",
+      "header": "Año",
+      "formula": null,
+      "original_input": 2011,
+      "cached_value": 2011
+    },
+    {
+      "cell": "E101",
+      "header": "VIN",
+      "formula": null,
+      "original_input": "5J6RE4H39BL018538",
+      "cached_value": "5J6RE4H39BL018538"
+    },
+    {
+      "cell": "F101",
+      "header": "Fecha",
+      "formula": null,
+      "original_input": "2026-10-15 00:00:00",
+      "cached_value": "2026-10-15 00:00:00"
+    },
+    {
+      "cell": "G101",
+      "header": "Location",
+      "formula": null,
+      "original_input": "Richmond (VA)",
+      "cached_value": "Richmond (VA)"
+    },
+    {
+      "cell": "H101",
+      "header": "Grua ($)",
+      "formula": null,
+      "original_input": 270,
+      "cached_value": 270
+    },
+    {
+      "cell": "I101",
+      "header": "Embarque ($)",
+      "formula": null,
+      "original_input": 1020,
+      "cached_value": 1020
+    },
+    {
+      "cell": "J101",
+      "header": "Carro ($)",
+      "formula": null,
+      "original_input": 2200,
+      "cached_value": 2200
+    },
+    {
+      "cell": "K101",
+      "header": "Total (Carro + Fee)",
+      "formula": null,
+      "original_input": 2995,
+      "cached_value": 2995
+    },
+    {
+      "cell": "L101",
+      "header": "Buyer Fee",
+      "formula": "=K101-J101",
+      "original_input": null,
+      "cached_value": 795
+    },
+    {
+      "cell": "M101",
+      "header": "Papelería ($)",
+      "formula": null,
+      "original_input": 15,
+      "cached_value": 15
+    },
+    {
+      "cell": "N101",
+      "header": "Impuestos ($)",
+      "formula": "=U101/O101",
+      "original_input": null,
+      "cached_value": 1860.8998549695139
+    },
+    {
+      "cell": "O101",
+      "header": "Cambio dolar",
+      "formula": null,
+      "original_input": 27.0288,
+      "cached_value": 27.0288
+    },
+    {
+      "cell": "P101",
+      "header": "Papelería",
+      "formula": "=O101*M101",
+      "original_input": null,
+      "cached_value": 405.432
+    },
+    {
+      "cell": "Q101",
+      "header": "Grua",
+      "formula": "=O101*H101",
+      "original_input": null,
+      "cached_value": 7297.776
+    },
+    {
+      "cell": "R101",
+      "header": "Embarque",
+      "formula": "=O101*I101",
+      "original_input": null,
+      "cached_value": 27569.376
+    },
+    {
+      "cell": "S101",
+      "header": "Carro",
+      "formula": "=O101*J101",
+      "original_input": null,
+      "cached_value": 59463.36
+    },
+    {
+      "cell": "T101",
+      "header": "Buyer Fee2",
+      "formula": "=O101*L101",
+      "original_input": null,
+      "cached_value": 21487.896
+    },
+    {
+      "cell": "U101",
+      "header": "Impuestos",
+      "formula": null,
+      "original_input": 50297.89,
+      "cached_value": 50297.89
+    },
+    {
+      "cell": "V101",
+      "header": "Total $",
+      "formula": "=SUM(H101:N101)",
+      "original_input": null,
+      "cached_value": 9155.899854969513
+    },
+    {
+      "cell": "W101",
+      "header": "Total Lps",
+      "formula": "=SUM(Q101:U101)",
+      "original_input": null,
+      "cached_value": 166116.298
+    },
+    {
+      "cell": "X101",
+      "header": "Gastos calculados (repuestos)",
+      "formula": null,
+      "original_input": 20000,
+      "cached_value": 20000
+    },
+    {
+      "cell": "Y101",
+      "header": "Dia subasta",
+      "formula": null,
+      "original_input": null,
+      "cached_value": null
+    },
+    {
+      "cell": "Z101",
+      "header": "Verified in bidcars",
+      "formula": null,
+      "original_input": "todo bien",
+      "cached_value": "todo bien"
+    },
+    {
+      "cell": "AA101",
+      "header": "Total + Gastos Calculados",
+      "formula": "=Table2[[#This Row],[Gastos calculados (repuestos)]]+Table2[[#This Row],[Total Lps]]",
+      "original_input": null,
+      "cached_value": 186116.298
+    },
+    {
+      "cell": "AB101",
+      "header": "Mean de venta",
+      "formula": null,
+      "original_input": 220000,
+      "cached_value": 220000
+    },
+    {
+      "cell": "AC101",
+      "header": "Ganancia",
+      "formula": "=Table2[[#This Row],[Mean de venta]]-Table2[[#This Row],[Total + Gastos Calculados]]",
+      "original_input": null,
+      "cached_value": 33883.70199999999
+    },
+    {
+      "cell": "AD101",
+      "header": "Seller",
+      "formula": null,
+      "original_input": "State Farm Group Insurance",
+      "cached_value": "State Farm Group Insurance"
+    },
+    {
+      "cell": "AE101",
+      "header": "Not won, why?",
+      "formula": null,
+      "original_input": null,
+      "cached_value": null
+    },
+    {
+      "cell": "AF101",
+      "header": "Max Bid set",
+      "formula": null,
+      "original_input": null,
+      "cached_value": null
+    }
+  ],
+  "inputs": {
+    "bid_usd": "2200",
+    "fees_usd": "795",
+    "fees_input_mode": "manual_total_for_regression_only",
+    "towing_usd": "270",
+    "ocean_usd": "1020",
+    "paperwork_usd": "15",
+    "exchange_rate_hnl_per_usd": "27.0288",
+    "manual_combined_landing_hnl": "50297.89",
+    "manual_landing_mode": "manual_total",
+    "repair_budget_hnl": "20000",
+    "expected_sale_hnl": "220000"
+  },
+  "legacy_expected": {
+    "car_plus_fees_usd": "2995",
+    "total_usd_display": "9155.90",
+    "total_hnl_unrounded": "166116.298",
+    "with_repair_hnl_unrounded": "186116.298",
+    "profit_hnl_unrounded": "33883.702"
+  },
+  "new_calculation_explicit_change": {
+    "cash_components_usd": "4300",
+    "total_usd_display": "6160.90",
+    "total_hnl_unrounded": "166521.7300",
+    "total_hnl_display": "166521.73",
+    "with_repair_hnl_display": "186521.73",
+    "profit_hnl_display": "33478.27",
+    "difference_to_legacy_hnl": "405.4320"
+  },
+  "policy": "No seedear este registro en producción. Conservar el resultado original como evidencia, no como oraculo monetario de la nueva app. Se propone corregir explicitamente la duplicación de K101 en V101 e incluir P101 en el total HNL. L50297.89 es total manual combinado; no inferir su desglose. Los USD795 son una entrada histórica, no tarifa oficial vigente."
+}

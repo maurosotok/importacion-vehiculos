@@ -1,0 +1,34 @@
+{
+  "package_version": 2,
+  "prepared_at": "2026-10-19",
+  "source_xlsx_sha256": "b870585e1f23e9836b9e3da6d8b5b37c52c6463aad0fc80e20d5f633aa038a92",
+  "source_files": {
+    "fuentes_privadas/Carros.xlsx": "b870585e1f23e9836b9e3da6d8b5b37c52c6463aad0fc80e20d5f633aa038a92",
+    "fuentes_privadas/embarques_honduras_2025.pdf": "73883105ccbaf06463726a5652fd5eb14d51b8e62219a9433c8bb0b687e269cc",
+    "fuentes_privadas/gruas_north_atlantic.pdf": "ff500d401a38f5951ab713952eabb4e4fed5df7645fa0b2b266e0f39e81a9028",
+    "fuentes_privadas/transcripcion_video.txt": "ae12685cc7dbf3a1fb215dc1602e224fb1f7d4113694240da5fd191036a613f3"
+  },
+  "counts": {
+    "towing_source_rows": 282,
+    "ocean_reference_rates": 30,
+    "parts_supplier_headers": 45,
+    "shipping_providers": 4,
+    "fee_profile_options": 10
+  },
+  "not_included": [
+    "application implementation",
+    "hosted database",
+    "deployed frontend",
+    "full fee amount tables",
+    "tax algorithm",
+    "original video bytes"
+  ],
+  "not_migrated": [
+    "quotes history",
+    "purchases history",
+    "expenses history",
+    "part price history",
+    "market price history",
+    "bank statement"
+  ]
+}

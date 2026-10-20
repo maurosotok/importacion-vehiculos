@@ -1,0 +1,7 @@
+project_id = "cotizador-honduras"
+
+[auth]
+enable_signup = false
+
+[functions.version]
+verify_jwt = false

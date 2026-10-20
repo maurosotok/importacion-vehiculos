@@ -1,0 +1,74 @@
+{
+  "schema_version": 2,
+  "enforce_dimensions": false,
+  "warning_modal_required": false,
+  "note": "Sedan/SUV/moto utilizan referencias del PDF sin validar medidas. Pickup y van/minivan tienen asociaciones propuestas de trabajo, editables: no son clasificaciones oficiales ni garantias por modelo. Mostrar la referencia elegida junto al importe. Otro permite importe manual. Ninguna eleccion bloquea guardar.",
+  "vehicle_types": [
+    {
+      "code": "sedan",
+      "label": "Sedán",
+      "source_category_by_zone": {
+        "DELAWARE": "SEDAN",
+        "FLORIDA": "SEDAN",
+        "TEXAS": "SEDAN",
+        "CALIFORNIA": "SEDAN"
+      },
+      "mapping_basis": "source_label_reference"
+    },
+    {
+      "code": "suv",
+      "label": "SUV / camioneta",
+      "source_category_by_zone": {
+        "DELAWARE": "SUV_CAMIONETA",
+        "FLORIDA": "SUV_CAMIONETA",
+        "TEXAS": "SUV_CAMIONETA",
+        "CALIFORNIA": "SUV_CAMIONETA"
+      },
+      "mapping_basis": "user_requested_simple_type"
+    },
+    {
+      "code": "pickup",
+      "label": "Pickup",
+      "source_category_by_zone": {
+        "DELAWARE": "GRANDE_17_4_18_11",
+        "FLORIDA": "GRANDE_17_4_18_11",
+        "TEXAS": "GRANDE_17_1_18_11",
+        "CALIFORNIA": "GRANDE_17_1_18_11"
+      },
+      "mapping_basis": "proposed_editable_working_reference_not_size_classification"
+    },
+    {
+      "code": "minivan",
+      "label": "Van / minivan",
+      "source_category_by_zone": {
+        "DELAWARE": "MEDIANO_16_1_17",
+        "FLORIDA": "MEDIANO_16_1_17",
+        "TEXAS": "MEDIANO_16_1_17",
+        "CALIFORNIA": "MEDIANO_16_1_17"
+      },
+      "mapping_basis": "proposed_editable_working_reference_not_size_classification"
+    },
+    {
+      "code": "motorcycle",
+      "label": "Moto",
+      "source_category_by_zone": {
+        "DELAWARE": "MOTOCICLETA",
+        "FLORIDA": "MOTOCICLETA",
+        "TEXAS": "MOTOCICLETA",
+        "CALIFORNIA": "MOTOCICLETA"
+      },
+      "mapping_basis": "source_label_reference"
+    },
+    {
+      "code": "other",
+      "label": "Otro / manual",
+      "source_category_by_zone": {
+        "DELAWARE": null,
+        "FLORIDA": null,
+        "TEXAS": null,
+        "CALIFORNIA": null
+      },
+      "mapping_basis": "manual"
+    }
+  ]
+}

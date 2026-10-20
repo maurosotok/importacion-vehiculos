@@ -1,0 +1,726 @@
+{
+  "source_file": "fuentes_privadas/Carros.xlsx",
+  "source_sha256": "b870585e1f23e9836b9e3da6d8b5b37c52c6463aad0fc80e20d5f633aa038a92",
+  "sheets": [
+    {
+      "sheet": "Quotes",
+      "in_scope": true,
+      "header_row": 2,
+      "columns": [
+        {
+          "column": "A",
+          "header": "ID"
+        },
+        {
+          "column": "B",
+          "header": "Marca"
+        },
+        {
+          "column": "C",
+          "header": "Modelo"
+        },
+        {
+          "column": "D",
+          "header": "Año"
+        },
+        {
+          "column": "E",
+          "header": "VIN"
+        },
+        {
+          "column": "F",
+          "header": "Fecha"
+        },
+        {
+          "column": "G",
+          "header": "Location"
+        },
+        {
+          "column": "H",
+          "header": "Grua ($)"
+        },
+        {
+          "column": "I",
+          "header": "Embarque ($)"
+        },
+        {
+          "column": "J",
+          "header": "Carro ($)"
+        },
+        {
+          "column": "K",
+          "header": "Total (Carro + Fee)"
+        },
+        {
+          "column": "L",
+          "header": "Buyer Fee"
+        },
+        {
+          "column": "M",
+          "header": "Papelería ($)"
+        },
+        {
+          "column": "N",
+          "header": "Impuestos ($)"
+        },
+        {
+          "column": "O",
+          "header": "Cambio dolar"
+        },
+        {
+          "column": "P",
+          "header": "Papelería"
+        },
+        {
+          "column": "Q",
+          "header": "Grua"
+        },
+        {
+          "column": "R",
+          "header": "Embarque"
+        },
+        {
+          "column": "S",
+          "header": "Carro"
+        },
+        {
+          "column": "T",
+          "header": "Buyer Fee2"
+        },
+        {
+          "column": "U",
+          "header": "Impuestos"
+        },
+        {
+          "column": "V",
+          "header": "Total $"
+        },
+        {
+          "column": "W",
+          "header": "Total Lps"
+        },
+        {
+          "column": "X",
+          "header": "Gastos calculados (repuestos)"
+        },
+        {
+          "column": "Y",
+          "header": "Dia subasta"
+        },
+        {
+          "column": "Z",
+          "header": "Verified in bidcars"
+        },
+        {
+          "column": "AA",
+          "header": "Total + Gastos Calculados"
+        },
+        {
+          "column": "AB",
+          "header": "Mean de venta"
+        },
+        {
+          "column": "AC",
+          "header": "Ganancia"
+        },
+        {
+          "column": "AD",
+          "header": "Seller"
+        },
+        {
+          "column": "AE",
+          "header": "Not won, why?"
+        },
+        {
+          "column": "AF",
+          "header": "Max Bid set"
+        }
+      ],
+      "tables": [
+        {
+          "name": "Table2",
+          "ref": "A2:AF101"
+        }
+      ]
+    },
+    {
+      "sheet": "Gruas",
+      "in_scope": true,
+      "header_row": 2,
+      "columns": [
+        {
+          "column": "C",
+          "header": "Punto de embarque"
+        },
+        {
+          "column": "D",
+          "header": "Estado"
+        },
+        {
+          "column": "E",
+          "header": "Ciudad"
+        },
+        {
+          "column": "F",
+          "header": "Price"
+        },
+        {
+          "column": "G",
+          "header": "Nieva"
+        }
+      ],
+      "tables": []
+    },
+    {
+      "sheet": "Cotización Piezas",
+      "in_scope": true,
+      "header_row": 1,
+      "columns": [
+        {
+          "column": "A",
+          "header": "Marca"
+        },
+        {
+          "column": "B",
+          "header": "Modelo"
+        },
+        {
+          "column": "C",
+          "header": "Año"
+        },
+        {
+          "column": "D",
+          "header": "Pieza"
+        },
+        {
+          "column": "E",
+          "header": "Suyapa AutoPartes"
+        },
+        {
+          "column": "F",
+          "header": "Inmecro"
+        },
+        {
+          "column": "G",
+          "header": "Autos Import Repuestos"
+        },
+        {
+          "column": "H",
+          "header": "Prime AutoPartes"
+        },
+        {
+          "column": "I",
+          "header": "Parillas One"
+        },
+        {
+          "column": "J",
+          "header": "Glass Depot"
+        },
+        {
+          "column": "K",
+          "header": "Leos Wheels - 8888-1511"
+        },
+        {
+          "column": "L",
+          "header": "Carbono AutoParts 3156-0796"
+        },
+        {
+          "column": "M",
+          "header": "Center New Parts 9251-1274"
+        },
+        {
+          "column": "N",
+          "header": "City New Parts 9581-7815"
+        },
+        {
+          "column": "O",
+          "header": "Honda Parts - 3376-7433"
+        },
+        {
+          "column": "P",
+          "header": "Revaparts - 3389 - 2655"
+        },
+        {
+          "column": "Q",
+          "header": "Inversiones Peña Gomez"
+        },
+        {
+          "column": "R",
+          "header": "Reconcos Autoparts - 9669-9141"
+        },
+        {
+          "column": "S",
+          "header": "Dominican Yonker"
+        },
+        {
+          "column": "T",
+          "header": "Remo Partes"
+        },
+        {
+          "column": "U",
+          "header": "Yonker Renacer"
+        },
+        {
+          "column": "V",
+          "header": "Yonker el Triangulo"
+        },
+        {
+          "column": "W",
+          "header": "Yonker Dubon 3294-4253"
+        },
+        {
+          "column": "X",
+          "header": "Yonker Invercan 3351-4252"
+        },
+        {
+          "column": "Y",
+          "header": "Yonker Motores 9655-0821"
+        },
+        {
+          "column": "Z",
+          "header": "Yonker Cortes 9842-5070"
+        },
+        {
+          "column": "AA",
+          "header": "Yonker Alex 3232-9355"
+        },
+        {
+          "column": "AB",
+          "header": "Yonker Mafer 3300-8030"
+        },
+        {
+          "column": "AC",
+          "header": "Yonker Caballero - 3259-4380"
+        },
+        {
+          "column": "AD",
+          "header": "Yonker Deras - 9949-7237"
+        },
+        {
+          "column": "AE",
+          "header": "Yonker Dubon 2 - 9802-6955"
+        },
+        {
+          "column": "AF",
+          "header": "Yonker Reconco Motors - 3326-3750"
+        },
+        {
+          "column": "AG",
+          "header": "Manix Yonker 3398-3932"
+        },
+        {
+          "column": "AH",
+          "header": "Yonker Pastrana - 9868-2264"
+        },
+        {
+          "column": "AI",
+          "header": "Yonker Reconco 9619-8192"
+        },
+        {
+          "column": "AJ",
+          "header": "Yonker Josue 9890-2116"
+        },
+        {
+          "column": "AK",
+          "header": "Yonker  Macam 9767-9131"
+        },
+        {
+          "column": "AL",
+          "header": "Yonker Costa - 9438-7066"
+        },
+        {
+          "column": "AM",
+          "header": "Racing AutoParts 9231-8900"
+        },
+        {
+          "column": "AN",
+          "header": "Maxi Yonker 3279-9650"
+        },
+        {
+          "column": "AO",
+          "header": "Kike Llantas 8900-7250"
+        },
+        {
+          "column": "AP",
+          "header": "Yonker Miami 9628-3872"
+        },
+        {
+          "column": "AQ",
+          "header": "Yonker Parmenas"
+        },
+        {
+          "column": "AR",
+          "header": "Yonker Sinai - 9690-6501"
+        },
+        {
+          "column": "AS",
+          "header": "Yonker Ferreauto 9603-8249"
+        },
+        {
+          "column": "AT",
+          "header": "Yonker Arnold - 3364-5597"
+        },
+        {
+          "column": "AU",
+          "header": "Yonker El Suave - 9622-8636"
+        },
+        {
+          "column": "AV",
+          "header": "Yonker Lopez - 8930-3270"
+        },
+        {
+          "column": "AW",
+          "header": "Yonker Revaparts 3384-6518"
+        }
+      ],
+      "tables": [
+        {
+          "name": "Table9",
+          "ref": "A1:AW35"
+        }
+      ]
+    },
+    {
+      "sheet": "Cotizacion gruas",
+      "in_scope": true,
+      "header_row": 1,
+      "columns": [
+        {
+          "column": "A",
+          "header": "Naviera"
+        },
+        {
+          "column": "B",
+          "header": "Marca"
+        },
+        {
+          "column": "C",
+          "header": "Modelo"
+        },
+        {
+          "column": "D",
+          "header": "Ubicacion"
+        },
+        {
+          "column": "E",
+          "header": "VIN"
+        },
+        {
+          "column": "F",
+          "header": "Grua"
+        },
+        {
+          "column": "G",
+          "header": "Barco"
+        },
+        {
+          "column": "H",
+          "header": "Papelería"
+        },
+        {
+          "column": "I",
+          "header": "Total"
+        }
+      ],
+      "tables": [
+        {
+          "name": "Table8",
+          "ref": "A1:I17"
+        }
+      ]
+    },
+    {
+      "sheet": "Purchases",
+      "in_scope": true,
+      "header_row": 2,
+      "columns": [
+        {
+          "column": "A",
+          "header": "ID"
+        },
+        {
+          "column": "B",
+          "header": "Marca"
+        },
+        {
+          "column": "C",
+          "header": "Modelo"
+        },
+        {
+          "column": "D",
+          "header": "Año"
+        },
+        {
+          "column": "E",
+          "header": "VIN"
+        },
+        {
+          "column": "F",
+          "header": "Fecha"
+        },
+        {
+          "column": "G",
+          "header": "Location"
+        },
+        {
+          "column": "H",
+          "header": "Grua ($)"
+        },
+        {
+          "column": "I",
+          "header": "Embarque ($)"
+        },
+        {
+          "column": "J",
+          "header": "Papelería ($)"
+        },
+        {
+          "column": "K",
+          "header": "Carro ($)"
+        },
+        {
+          "column": "L",
+          "header": "Buyer Fee"
+        },
+        {
+          "column": "M",
+          "header": "BAC Fees / BP Fees ($)"
+        },
+        {
+          "column": "N",
+          "header": "Paypal Fees"
+        },
+        {
+          "column": "O",
+          "header": "Fee of bank receiver"
+        },
+        {
+          "column": "P",
+          "header": "Impuestos ($)"
+        },
+        {
+          "column": "Q",
+          "header": "Cambio dolar"
+        },
+        {
+          "column": "R",
+          "header": "Grua (Lps)"
+        },
+        {
+          "column": "S",
+          "header": "Embarque (Lps)"
+        },
+        {
+          "column": "T",
+          "header": "Papelería (Lps)"
+        },
+        {
+          "column": "U",
+          "header": "Carro (Lps)"
+        },
+        {
+          "column": "V",
+          "header": "Buyer Fee (Lps)"
+        },
+        {
+          "column": "W",
+          "header": "BAC Fees/BP Fees (Lps) "
+        },
+        {
+          "column": "X",
+          "header": "Paypal Fees (Lps)"
+        },
+        {
+          "column": "Y",
+          "header": "Fee of bank receiver (Lps)"
+        },
+        {
+          "column": "Z",
+          "header": "Impuestos"
+        },
+        {
+          "column": "AA",
+          "header": "Total $"
+        },
+        {
+          "column": "AB",
+          "header": "Repuestos"
+        },
+        {
+          "column": "AC",
+          "header": "Total Sin Repuestos"
+        },
+        {
+          "column": "AD",
+          "header": "Total Lps"
+        },
+        {
+          "column": "AE",
+          "header": "Date received"
+        },
+        {
+          "column": "AF",
+          "header": "Vendido a"
+        },
+        {
+          "column": "AG",
+          "header": "Ganancia"
+        },
+        {
+          "column": "AH",
+          "header": "Date sold"
+        }
+      ],
+      "tables": [
+        {
+          "name": "Table4",
+          "ref": "A2:AH11"
+        }
+      ]
+    },
+    {
+      "sheet": "Spare Parts Purchases",
+      "in_scope": true,
+      "header_row": 1,
+      "columns": [
+        {
+          "column": "A",
+          "header": "ID"
+        },
+        {
+          "column": "B",
+          "header": "Marca"
+        },
+        {
+          "column": "C",
+          "header": "Modelo"
+        },
+        {
+          "column": "D",
+          "header": "Año"
+        },
+        {
+          "column": "E",
+          "header": "VIN"
+        },
+        {
+          "column": "F",
+          "header": "Fecha de compra"
+        },
+        {
+          "column": "G",
+          "header": "Fecha pagado"
+        },
+        {
+          "column": "H",
+          "header": "Repuesto"
+        },
+        {
+          "column": "I",
+          "header": "Lugar"
+        },
+        {
+          "column": "J",
+          "header": "Total"
+        }
+      ],
+      "tables": [
+        {
+          "name": "Table1",
+          "ref": "A1:J161"
+        }
+      ]
+    },
+    {
+      "sheet": "Bank Statement",
+      "in_scope": false,
+      "reason": "Private bank ledger excluded from app and seeds."
+    },
+    {
+      "sheet": "Market Research",
+      "in_scope": true,
+      "header_row": 1,
+      "columns": [
+        {
+          "column": "A",
+          "header": "Marca"
+        },
+        {
+          "column": "B",
+          "header": "Modelo"
+        },
+        {
+          "column": "C",
+          "header": "Año"
+        },
+        {
+          "column": "D",
+          "header": "Precio"
+        },
+        {
+          "column": "E",
+          "header": "Motor"
+        },
+        {
+          "column": "F",
+          "header": "Traccion"
+        },
+        {
+          "column": "G",
+          "header": "Millas"
+        },
+        {
+          "column": "H",
+          "header": "Fecha consultado"
+        },
+        {
+          "column": "I",
+          "header": "Link"
+        },
+        {
+          "column": "J",
+          "header": "Recien ingreso"
+        }
+      ],
+      "tables": [
+        {
+          "name": "Table3",
+          "ref": "A1:J161"
+        }
+      ]
+    },
+    {
+      "sheet": "Final Prices",
+      "in_scope": true,
+      "header_row": 1,
+      "columns": [
+        {
+          "column": "A",
+          "header": "Marca"
+        },
+        {
+          "column": "B",
+          "header": "Modelo"
+        },
+        {
+          "column": "C",
+          "header": "Año"
+        },
+        {
+          "column": "D",
+          "header": "Precio"
+        },
+        {
+          "column": "E",
+          "header": "Fecha"
+        }
+      ],
+      "tables": [
+        {
+          "name": "Table10",
+          "ref": "A1:E8"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+{
+  "schema_version": 2,
+  "default_profile_id": "iaa_standard_volume",
+  "note": "Catálogo de opciones, NO tablas monetarias completas. Las familias y enlaces fueron revisados; Claude debe cargar tramos y cargos desde cada fuente oficial. Un perfil sin tabla sigue seleccionable con total manual. No sembrar USD 795 como una regla, no copiar tablas canadienses, no inventar combinaciones.",
+  "profiles": [
+    {
+      "id": "iaa_standard_volume",
+      "label": "IAA - Standard Volume Buyer Fees",
+      "auction": "IAA",
+      "segment": "standard",
+      "pricing_tier": "standard_volume",
+      "license_type": "licensed",
+      "is_default": true,
+      "source_url": "https://www.iaai.com/marketing/standard-iaa-licensed-buyer-fees",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "bid_mode": [
+          "internet_live",
+          "proxy",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "iaa_high_volume",
+      "label": "IAA - High Volume Buyer Fees",
+      "auction": "IAA",
+      "segment": "standard",
+      "pricing_tier": "high_volume",
+      "license_type": "licensed",
+      "is_default": false,
+      "source_url": "https://www.iaai.com/marketing/standard-iaa-licensed-buyer-fees",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "bid_mode": [
+          "internet_live",
+          "proxy",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "iaa_non_licensed",
+      "label": "IAA - Non-Licensed Buyer Fees",
+      "auction": "IAA",
+      "segment": "standard",
+      "pricing_tier": "non_licensed",
+      "license_type": "non_licensed",
+      "is_default": false,
+      "source_url": "https://www.iaai.com/marketing/standard-iaa-non-licensed-buyer-fees",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "bid_mode": [
+          "internet_live",
+          "proxy",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "iaa_heavy_standard",
+      "label": "IAA Heavy - Standard Volume",
+      "auction": "IAA",
+      "segment": "heavy",
+      "pricing_tier": "standard_volume",
+      "license_type": "licensed",
+      "is_default": false,
+      "source_url": "https://www.iaai.com/marketing/standard-iaa-heavy-vehicle-buyer-fees",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "bid_mode": [
+          "internet_live",
+          "proxy",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "iaa_heavy_high",
+      "label": "IAA Heavy - High Volume",
+      "auction": "IAA",
+      "segment": "heavy",
+      "pricing_tier": "high_volume",
+      "license_type": "licensed",
+      "is_default": false,
+      "source_url": "https://www.iaai.com/marketing/standard-iaa-heavy-vehicle-buyer-fees",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "bid_mode": [
+          "internet_live",
+          "proxy",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "iaa_rec_rides_standard",
+      "label": "IAA Rec Rides - Standard Volume",
+      "auction": "IAA",
+      "segment": "rec_rides",
+      "pricing_tier": "standard_volume",
+      "license_type": "licensed",
+      "is_default": false,
+      "source_url": "https://www.iaai.com/marketing/standard-iaa-rec-rides-buyer-fees",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "bid_mode": [
+          "internet_live",
+          "proxy",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "copart_non_licensed",
+      "label": "Copart - Non-Licensed / Standard Pricing",
+      "auction": "COPART",
+      "segment": null,
+      "pricing_tier": "standard",
+      "license_type": "non_licensed",
+      "is_default": false,
+      "source_url": "https://www.copart.com/content/us/en/member-fees-us-non-licensed",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "title_group": [
+          "clean",
+          "non_clean"
+        ],
+        "payment_security": [
+          "secured",
+          "unsecured"
+        ],
+        "vehicle_segment": [
+          "standard",
+          "heavy",
+          "crashedtoys_custom"
+        ],
+        "bid_mode": [
+          "pre_bid",
+          "live",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "copart_licensed_standard",
+      "label": "Copart - Licensed / Standard Pricing",
+      "auction": "COPART",
+      "segment": null,
+      "pricing_tier": "standard",
+      "license_type": "licensed",
+      "is_default": false,
+      "source_url": "https://www.copart.com/content/us/en/member-fees-us-licensed-less",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "title_group": [
+          "clean",
+          "non_clean"
+        ],
+        "payment_security": [
+          "secured",
+          "unsecured"
+        ],
+        "vehicle_segment": [
+          "standard",
+          "heavy",
+          "crashedtoys_custom"
+        ],
+        "bid_mode": [
+          "pre_bid",
+          "live",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "copart_licensed_preferred",
+      "label": "Copart - Licensed / Preferred Pricing",
+      "auction": "COPART",
+      "segment": null,
+      "pricing_tier": "preferred",
+      "license_type": "licensed",
+      "is_default": false,
+      "source_url": "https://www.copart.com/content/us/en/member-fees-us-licensed-more",
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "not_bundled",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {
+        "title_group": [
+          "clean",
+          "non_clean"
+        ],
+        "payment_security": [
+          "secured",
+          "unsecured"
+        ],
+        "vehicle_segment": [
+          "standard",
+          "heavy",
+          "crashedtoys_custom"
+        ],
+        "bid_mode": [
+          "pre_bid",
+          "live",
+          "other"
+        ]
+      }
+    },
+    {
+      "id": "manual_custom",
+      "label": "Manual / intermediario / personalizado",
+      "auction": "CUSTOM",
+      "segment": null,
+      "pricing_tier": null,
+      "license_type": null,
+      "is_default": false,
+      "source_url": null,
+      "names_checked_at": "2026-10-19",
+      "selectable": true,
+      "allow_manual_total": true,
+      "fee_table_status": "manual",
+      "active_rule_version": null,
+      "rule_rows": [],
+      "parameter_options": {}
+    }
+  ]
+}

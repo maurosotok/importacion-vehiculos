@@ -1,0 +1,303 @@
+:root {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: #1d2430;
+  background: #f4f6f8;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.35rem;
+  margin: 0.2rem 0 0.4rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.6rem;
+}
+
+h3 {
+  font-size: 0.95rem;
+  margin: 0.8rem 0 0.3rem;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #aab4c0;
+  border-radius: 4px;
+  background: #fff;
+}
+
+button {
+  cursor: pointer;
+  background: #1f4e79;
+  color: #fff;
+  border-color: #1f4e79;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button.enlace {
+  background: none;
+  border: none;
+  color: #1f4e79;
+  padding: 0;
+  margin-bottom: 0.2rem;
+}
+
+input[aria-invalid='true'] {
+  border-color: #b42318;
+  background: #fff4f2;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-weight: 500;
+}
+
+label small,
+small {
+  font-weight: 400;
+  color: #5c6672;
+}
+
+fieldset {
+  border: 1px solid #d5dbe2;
+  border-radius: 6px;
+  background: #fff;
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem 0.75rem;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 0.3rem;
+}
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem 0.6rem;
+}
+
+.ancho-2 {
+  grid-column: span 2;
+}
+
+.referencia {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.pendiente {
+  color: #8a5a00;
+  font-style: italic;
+}
+
+.nota {
+  color: #5c6672;
+  font-size: 0.85rem;
+  margin: 0.4rem 0;
+}
+
+.error {
+  color: #b42318;
+}
+
+.exito {
+  color: #1d6b3a;
+}
+
+.aplicacion {
+  min-height: 100vh;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #d5dbe2;
+}
+
+.barra nav {
+  display: flex;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.barra nav button[aria-current='true'] {
+  background: #1f4e79;
+}
+
+.barra nav button:not([aria-current='true']) {
+  background: #fff;
+  color: #1f4e79;
+  border-color: #aab4c0;
+}
+
+.contenido {
+  padding: 1rem;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.pantalla-central {
+  max-width: 360px;
+  margin: 12vh auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.acceso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.encabezado-seccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.estado-guardado {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.estado {
+  font-size: 0.85rem;
+  color: #5c6672;
+}
+
+.estado-fallo,
+.estado-conflicto {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.estado-guardado {
+  color: #1d6b3a;
+}
+
+.aviso-conflicto {
+  border: 1px solid #b42318;
+  background: #fff4f2;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.dos-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.resumen {
+  position: sticky;
+  top: 1rem;
+  background: #fff;
+  border: 1px solid #d5dbe2;
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+}
+
+.resumen dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem 0.6rem;
+  margin: 0;
+}
+
+.resumen dt {
+  color: #5c6672;
+}
+
+.resumen dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pendientes {
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #d5dbe2;
+}
+
+.pendientes ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #8a5a00;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #d5dbe2;
+}
+
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid #e6eaef;
+}
+
+.tabla th {
+  background: #eef2f6;
+  font-weight: 600;
+}
+
+.fila-enlace {
+  cursor: pointer;
+}
+
+.fila-enlace:hover {
+  background: #f0f6fc;
+}
+
+.configuracion {
+  max-width: 720px;
+}
+
+@media (max-width: 860px) {
+  .dos-columnas {
+    grid-template-columns: 1fr;
+  }
+
+  .resumen {
+    position: static;
+  }
+}
