@@ -1,4 +1,4 @@
-# Checklist de aceptación - estado real a 2026-10-20
+# Checklist de aceptación - estado real a 2026-10-21
 
 Fuente de los IDs: `docs/PRUEBAS_ACEPTACION.md`. Nada de esta lista se da por verificado sin
 ejecución registrada. Los IDs de las pruebas de BD (`S01a`, `M01`…`R01`) son nombres internos de
@@ -71,8 +71,8 @@ Estados:
 | A01 | Pasa (motor) | `predeterminados.test.ts`: 2007 y 2010 → 10000/11000; 2011 → vacío/13557; importes capturados no se consideran automáticos | Aplicación en pantalla no probada en navegador |
 | A02 | Pasa (motor) | `caso107.test.ts` y `fees-sustitucion.test.ts`: 795 automático, manual 800 sustituye, borrar vuelve a 795 | Pantalla "Carro + Fees" y "Volver a automático" no probadas en navegador; 3500/3750/4000 cubiertos en `caso107.test.ts` |
 | A03 | Pasa (motor + BD) | `duplicados.test.ts` (normalización, exclusión, orden); `V01`: RLS impide ver cotizaciones ajenas por VIN | Aviso y botones en navegador no probados |
-| A04 | Pasa (motor) | `regresion-honda-cr-v-2007.test.ts`: 4135 / 132761.19 / 152761.19 / 37238.81 | Mismos valores en el editor, en navegador; el VIN indicado tiene 16 caracteres |
-| A05 | Parcial | `gruas.test.ts`: Nashville queda `pendiente` con la fila "Nashville Copart - IAA" sin verificar | Confirmación en pantalla no probada; la fila necesita decisión del usuario sobre su etiqueta |
+| A04 | Pasa (motor) | `regresion-honda-cr-v-2007.test.ts`: 4135 / 132761.19 / 152761.19 / 37238.81 | Mismos valores en el editor, en navegador. La cotización guardada conserva el VIN de 16 caracteres; corregirla desde el editor requiere autorización del usuario |
+| A05 | Parcial | `gruas.test.ts`: Nashville con IAA o COPART da US$500 (confirmación del usuario 2026-10-21); sin subasta, otro estado o sin estado queda pendiente | Pantalla no probada; revisión visual de la página 9 del PDF |
 
 ## Datos y producción
 | ID | Estado | Evidencia | Falta |
@@ -89,9 +89,26 @@ Estados:
 | R03 | Pendiente en vivo | Un workflow, una Pages, un proyecto Supabase en configuración | No hay URL ni proyecto verificados |
 | R04 | Pasa (ensayo local) | `npm run db:ensayar-restauracion`: origen y destino coinciden en filas, RLS, políticas y funciones | Respaldo lógico JSON, no `pg_dump`; copia previa a migraciones sigue manual |
 
+## Ronda 2026-10-21: tarifas PDF, Nashville, VIN, listado y archivado
+| ID | Estado | Evidencia | Falta |
+|---|---|---|---|
+| RV01 | Pasa (BD) | `C07`: corrección de las nueve tarifas aplicada dos veces, idempotente, respeta ediciones y cotizaciones; motor en `gruas.test.ts` | Migración `20261021000100` no aplicada en remoto; sin revisión visual de los importes en la pantalla |
+| RV02 | Pasa (motor) | `gruas.test.ts`: Nashville con IAA o COPART da US$500, zona FLORIDA | Confirmación en pantalla no probada |
+| RV03 | Pasa (motor) | `gruas.test.ts`: sin subasta, con TX o KY, o sin estado no aplica tarifa | Mensaje en pantalla no probado |
+| RV04 | Pasa (motor) | `historial-subastas.test.ts`: VIN de 17 caracteres válido; `JHLRE38797C00907` marcado incompleto | Editor en navegador no probado |
+| RV05 | Pasa (BD) | `C08`: la corrección de VIN conserva la cotización y la compra | Corrección real del VIN guardado requiere autorización |
+| RV06 | Pasa (motor + BD) | `historial-subastas.test.ts` y `C06`: VIN repetido no bloquea | Aviso en navegador no probado |
+| RV07 | Pasa (motor) | `listadoVehiculos.test.ts`: orden ascendente, nulos al final, sin desfase UTC | Listado en navegador no probado; requiere `20261021000200` en remoto |
+| RV08 | Pasa (motor) | `listadoVehiculos.test.ts`: filtros por defecto y "Mostrar todas" | Listado en navegador no probado |
+| RV09 | Parcial | `C01`: vendido por cotización con RLS | Sin prueba del botón en la lista ni del campo en el formulario |
+| RV10 | Parcial | `C02` y `C05`: archivado conserva compras, gastos y revisiones | Sin prueba en navegador de confirmación, doble clic ni texto de borrador |
+| RV11 | Pasa (BD) | `C03`: otro usuario no archiva | — |
+| RV12 | Pasa (BD) | `C04`: DELETE físico denegado a `authenticated` | — |
+| RV13 | Pasa (BD) | `C05`: restaurar devuelve la cotización | Sin botón de restauración en la interfaz |
+
 ## Resumen
 - Motor y BD: los casos de dinero, fees, impuestos manuales, compras y seguridad de datos tienen pruebas que pasan.
-- Regresión Honda CR-V 2007 (IAA, puja 2000, grúa 500, barco 825): `regresion-honda-cr-v-2007.test.ts` pasa con partidas 4135, importado L132,761.19, inversión L152,761.19, utilidad L37,238.81. El VIN que se indicó (`JHLRE38797C00907`) tiene 16 caracteres y no pasa la validación de 17; no se completó ni se inventó el dígito faltante.
+- Regresión Honda CR-V 2007 (IAA, puja 2000, grúa 500, barco 825): `regresion-honda-cr-v-2007.test.ts` pasa con partidas 4135, importado L132,761.19, inversión L152,761.19, utilidad L37,238.81. El VIN completo confirmado por el usuario es `JHLRE38797C009075` (17 caracteres). La cotización guardada tiene `JHLRE38797C00907` (16 caracteres); corregirla requiere autorización.
 - `EditorCotizacion` ya usa la tabla de fees y el motor nuevo (sin prueba en navegador). Faltan las pruebas en pantalla de UX, perfiles, impuestos, grúa y barco.
 - No cumplidos: recálculo de servidor en `marcar_comprado` (S02) y confirmación servidor de revisiones (S03).
 - Pendiente en vivo: publicación, registro público en Supabase real, URL de Pages, pruebas en navegador.

@@ -6,7 +6,6 @@ type Proveedor = { clave: string; nombre: string };
 type Ajustes = {
   perfil_fees_clave: string;
   proveedor_clave: string;
-  pago_unico_hnl: string;
   gastos_locales_referencia_min_hnl: string;
   gastos_locales_referencia_max_hnl: string;
   gastos_locales_predeterminado_hnl: string;
@@ -17,7 +16,6 @@ type Ajustes = {
 const AJUSTES_VACIOS: Ajustes = {
   perfil_fees_clave: '',
   proveedor_clave: '',
-  pago_unico_hnl: '',
   gastos_locales_referencia_min_hnl: '',
   gastos_locales_referencia_max_hnl: '',
   gastos_locales_predeterminado_hnl: '',
@@ -53,7 +51,7 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
       supabase
         .from('user_settings')
         .select(
-          'perfil_fees_clave, proveedor_clave, pago_unico_hnl, gastos_locales_referencia_min_hnl, gastos_locales_referencia_max_hnl, gastos_locales_predeterminado_hnl, papeleria_predeterminada_usd, tipo_cambio_predeterminado_hnl_por_usd',
+          'perfil_fees_clave, proveedor_clave, gastos_locales_referencia_min_hnl, gastos_locales_referencia_max_hnl, gastos_locales_predeterminado_hnl, papeleria_predeterminada_usd, tipo_cambio_predeterminado_hnl_por_usd',
         )
         .maybeSingle(),
     ]).then(([resPerfiles, resProveedores, resAjustes]) => {
@@ -69,7 +67,6 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
         setAjustes({
           perfil_fees_clave: aTexto(fila.perfil_fees_clave),
           proveedor_clave: aTexto(fila.proveedor_clave),
-          pago_unico_hnl: aTexto(fila.pago_unico_hnl),
           gastos_locales_referencia_min_hnl: aTexto(fila.gastos_locales_referencia_min_hnl),
           gastos_locales_referencia_max_hnl: aTexto(fila.gastos_locales_referencia_max_hnl),
           gastos_locales_predeterminado_hnl: aTexto(fila.gastos_locales_predeterminado_hnl),
@@ -89,7 +86,6 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
     setError(null);
 
     const montos = [
-      ajustes.pago_unico_hnl,
       ajustes.gastos_locales_referencia_min_hnl,
       ajustes.gastos_locales_referencia_max_hnl,
       ajustes.gastos_locales_predeterminado_hnl,
@@ -111,7 +107,6 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
         owner_id: usuarioId,
         perfil_fees_clave: aNulo(ajustes.perfil_fees_clave),
         proveedor_clave: aNulo(ajustes.proveedor_clave),
-        pago_unico_hnl: aNulo(ajustes.pago_unico_hnl),
         gastos_locales_referencia_min_hnl: aNulo(ajustes.gastos_locales_referencia_min_hnl),
         gastos_locales_referencia_max_hnl: aNulo(ajustes.gastos_locales_referencia_max_hnl),
         gastos_locales_predeterminado_hnl: aNulo(ajustes.gastos_locales_predeterminado_hnl),
@@ -212,16 +207,6 @@ export function Configuracion({ usuarioId }: { usuarioId: string }) {
           <fieldset>
             <legend>Impuestos y gastos locales (HNL)</legend>
             <div className="rejilla">
-              <label>
-                Pago único de acceso rápido
-                <input
-                  inputMode="decimal"
-                  value={ajustes.pago_unico_hnl}
-                  onChange={(evento) => {
-                    setAjustes({ ...ajustes, pago_unico_hnl: evento.target.value });
-                  }}
-                />
-              </label>
               <label>
                 Gastos locales, mínimo de referencia
                 <input

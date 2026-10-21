@@ -1,5 +1,71 @@
 # Estado de implementación
 
+## Ronda 2026-10-21 (tarifas del PDF, Nashville, VIN, regla de año, listado): estado
+
+Commit pendiente de publicar; sin publicación en Cloudflare Pages. En Supabase remoto: migraciones `20261021000100` y `20261021000200` aplicadas y VIN corregido. Cotizaciones históricas no modificadas.
+Las secciones de rondas anteriores describen su fecha; donde contradigan esta ronda, prevalece esta.
+
+### Implementado (código local)
+- Tarifas de grúa: nueve importes del PDF North Atlantic en `data/catalogos/gruas_desde_excel.json`
+  (versión `2026-10-21-pdf`). El importe anterior queda en `raw_price`. Migración
+  `20261021000100_correccion_tarifas_grua_pdf.sql`: solo cambia filas cuyo importe sigue siendo el
+  anterior, es idempotente y no toca cotizaciones ni ediciones manuales. El importador usa
+  `on conflict do nothing`, así que la corrección va en migración propia.
+- Nashville: alias por subasta. "Nashville (TN)" con IAA o COPART resuelve a US$500 (fila
+  "Nashville Copart - IAA", zona FLORIDA). Sin subasta, con otro estado (TX, KY) o sin estado queda
+  pendiente o sin coincidencia.
+- VIN: `estadoVin` exige 17 caracteres. Un VIN repetido muestra aviso informativo con fecha de
+  subasta y estado vendido; no bloquea. El editor permite corregir el VIN de un vehículo sin perder
+  la cotización ni sus compras.
+- Regla por año en `src/motor/predeterminados.ts`: 2010 o anterior → impuesto L10,000 y gastos
+  locales L11,000; 2011 o posterior → impuesto vacío y gastos locales L13,557 editable.
+- Listado de Vehículos (`src/paginas/Vehiculos.tsx`, `src/lib/listadoVehiculos.ts`): columnas
+  solicitadas, filtros por defecto, orden por fecha de subasta ascendente con nulos al final, fechas
+  en America/Tegucigalpa, "Vendido" editable en la lista y en el formulario, "Eliminar" con
+  confirmación y archivado lógico.
+- Migración `20261021000200_vendido_y_archivado_cotizaciones.sql`: `vendido_en_subasta`, `deleted_at`,
+  índices parciales, revoca DELETE a `authenticated` sobre `quotes`, y funciones
+  `archivar_cotizacion` y `restaurar_cotizacion` (security invoker, filtran por `owner_id`).
+
+### Comandos ejecutados en esta ronda (exit code)
+| Comando | Resultado |
+|---|---|
+| `npm test` (`vitest run`) | exit 0: 20 archivos, 245 pruebas superadas |
+| `npm run typecheck` (`tsc -b`) | exit 0 |
+| `npm run lint` (`eslint .`) | exit 0 |
+| `npm run db:verificar-migraciones` | exit 0 |
+| `npm run test:bd` | exit 0: 33 pruebas superadas (PostgreSQL 17 embebido, no Supabase) |
+
+Errores corregidos durante la ronda: tipo `boolean` del campo nuevo en `construirParches`; `supabase.rpc`
+devuelve `any` sin tipos generados, así que el resultado de `archivar_cotizacion` se lee como `unknown`;
+la prueba C08 comprobaba fuera de la transacción revertida y se movió dentro del callback.
+
+### No ejecutado
+- `npm run build`: no ejecutado en esta ronda.
+- Navegador (escritorio y 390 px): ninguna pantalla de esta ronda se ha probado.
+- Supabase remoto: las migraciones `20261021000100` y `20261021000200` no están aplicadas. Sin la
+  segunda, el listado remoto falla porque `deleted_at` no existe. Sin la primera, las nueve tarifas
+  no cambian en el proyecto real.
+- Publicación, workflow de GitHub Actions y Cloudflare: no ejecutados ni autorizados.
+
+### Pendiente de autorización (cambios remotos o datos)
+1. Aplicar `20261021000100` en Supabase. Antes, comprobar en solo lectura que las nueve claves
+   (`NA-XLSX-GRUAS-0056`, `0078`, `0079`, `0089`, `0093`, `0095`, `0101`, `0121`, `0165`) tienen los
+   importes anteriores (165, 200, 200, 220, 225, 225, 250, 270, 350) con
+   `select clave, monto_usd from public.towing_rates where clave in (...)`.
+2. Aplicar `20261021000200` en Supabase. Cambia permisos sobre `quotes` (revoca DELETE).
+3. Corregir el VIN de la cotización guardada con `JHLRE38797C00907` (16 caracteres) por
+   `JHLRE38797C009075` desde el editor del propietario. Es un dato real: no lo hace el agente.
+4. Decidir si el ajuste `pago_unico_hnl` de Configuración se retira. La regla por año no lo usa.
+
+### Limitaciones
+- Nashville: la capa de texto del PDF no muestra precio para esa línea. El importe de US$500 viene de la
+  confirmación explícita del usuario. Conviene revisar visualmente la página 9.
+- Richmond Doswell: el origen VIRGINIA viene del Excel; no se verificó en el PDF.
+- La interfaz no tiene botón de restauración; `restaurar_cotizacion` existe solo en la base.
+- Alternar "Vendido" en la lista aumenta `row_version`; un editor abierto en paralelo tendrá conflicto al guardar.
+- Por eso se usa `supabase.rpc` sin tipos generados; los resultados se validan como `unknown`.
+
 ## Ronda 2026-10-20 (correcciones de interfaz y automatización): estado
 
 Sin commit, sin publicación y sin cambios en la base remota. Cotizaciones históricas no modificadas.
@@ -10,7 +76,7 @@ Sin commit, sin publicación y sin cambios en la base remota. Cotizaciones hist�
 - Fees automáticos desde el perfil seleccionado; "Carro + Fees" = Puja + Fees efectivos; "Volver a automático" limpia el fee manual.
 - Retirados del formulario principal: "Modo de fees", "Modalidad de puja" y texto técnico de fees. Los datos internos se conservan.
 - Aviso de VIN ya guardado (`src/motor/duplicados.ts`, `EditorCotizacion.tsx`): normaliza, excluye la cotización abierta, respuestas viejas ignoradas, no bloquea. Abrir existente es la acción principal.
-- Sede "Nashville (TN)": la fila "Nashville Copart - IAA" (US$500) queda como sugerencia pendiente (`resolverGrua` → `pendiente`), no como tarifa aplicada.
+- Sede "Nashville (TN)": la fila "Nashville Copart - IAA" (US$500) queda como sugerencia pendiente sin subasta; con IAA o COPART se aplica (superado el 2026-10-21).
 - Migración local `supabase/migrations/20261020000100_fees_desglose_y_defaults.sql`: solo local; el estado en el proyecto remoto no se conoce.
 
 ### Comandos ejecutados en esta ronda (exit code)
@@ -31,24 +97,30 @@ Errores encontrados y corregidos en esta ronda: dos pruebas de duplicados usaban
 ### Probado con BD
 - `V01` (nueva): el propietario ve cotizaciones por VIN; otro usuario autenticado no ve ninguna. Usa autenticación real del harness, sin evadir RLS.
 
+### Validaciones finales (exit code)
+- `npm test` 245/245 (20 archivos): 0. `npm run typecheck`: 0. `npm run lint`: 0 (repetido tras retirar `pago_unico_hnl`). `npm run db:verificar-migraciones`: 0. `npm run test:bd` 33/33: 0. `npm run build`: 0.
+
 ### No ejecutado
-- Pruebas en navegador de esta ronda: no se ejecutaron. Se decidió no repetir Playwright en esta ejecución.
-- Verificación del esquema y catálogos en el Supabase remoto: no se hizo.
-- Publicación, workflow de GitHub Actions y commit: no se hicieron.
+- Pruebas en navegador de esta ronda: no se ejecutaron.
+- Remoto: aplicadas `20261021000200` y `20261021000100`, cada una en transacción y registrada en el historial. Corregido el VIN del Honda CR-V 2007 (`JHLRE38797C009075`) con respaldo previo en `backups/` (no versionado). Los catálogos no se reimportaron. Sin sesión de propietario no se comprobó el listado ni el editor con HTTP 200.
+- `pago_unico_hnl` retirado de la interfaz de Configuración; la columna se conserva en la base de datos.
+- Publicación en Cloudflare Pages y ejecución de `.github/workflows/publicar.yml`: no se hicieron (faltan credenciales de Cloudflare y secretos de GitHub).
+- Seguridad: `.env.example` tenía la contraseña de la base de datos en el commit inicial. Se quitó del archivo, pero sigue en el historial de git. Debe rotarse en Supabase.
 
 ### Datos pendientes y decisiones del usuario
-- VIN de la regresión: `JHLRE38797C00907` tiene 16 caracteres y no pasa la validación de 17. No se completó el dígito faltante.
-- L10,000 por año: `CLAUDE.md` indica que L10000 no es una regla por año. Se aplicó la instrucción expresa más reciente del usuario (≤ 2010). Confirmar si debe seguir así.
-- Nashville: confirmar si la fila "Nashville Copart - IAA" (FLORIDA, US$500) corresponde a IAA Nashville; mientras tanto queda pendiente.
-- Discrepancias Excel vs PDF en grúas (pendientes de decisión): Tampa North IAA 225 vs 265; Orlando - Copart - IAA 200 vs 225; Orlando North y South 200 vs 210; Orlando IAA - Sublot Boggy Greek 225 vs 350; Central New Jersey - IAA 165 vs 275; Richmond - Copart - IAA 270 vs 325; Richmond Doswell - IAA 350 vs 500; Tampa US41 IAA 250 vs 200; Tampa IAA 220 vs 225.
+- VIN de la regresión: `JHLRE38797C00907` tiene 16 caracteres y no pasa la validación de 17. Resuelto el 2026-10-21: el VIN correcto es `JHLRE38797C009075` (17). Corregir la cotización guardada: ver ronda 2026-10-21.
+- L10,000 por año: resuelto el 2026-10-21. Regla confirmada por el usuario: 2010 o anterior, impuesto L10,000 y gastos locales L11,000; 2011 o posterior, impuesto manual y gastos locales L13,557.
+- Nashville: resuelto el 2026-10-21. El usuario confirmó que "Nashville Copart - IAA" (US$500) es válida para Nashville, TN, en IAA y Copart.
+- Discrepancias Excel vs PDF en grúas (resueltas el 2026-10-21 a favor del PDF; ver `docs/RECONCILIACION_TARIFAS.md`): Tampa North IAA 225 vs 265; Orlando - Copart - IAA 200 vs 225; Orlando North y South 200 vs 210; Orlando IAA - Sublot Boggy Greek 225 vs 350; Central New Jersey - IAA 165 vs 275; Richmond - Copart - IAA 270 vs 325; Richmond Doswell - IAA 350 vs 500; Tampa US41 IAA 250 vs 200; Tampa IAA 220 vs 225.
 - Denver y Webster (Colorado) tienen origen ARIZONA en el catálogo; las búsquedas de CO no las encuentran.
 - `Python/` está rastreado en git (2399 archivos, intérprete Python embebido en el repositorio). Decidir si debe quedar fuera del control de versiones. No se borró nada.
-- `Configuracion.tsx` aún muestra el ajuste `pago_unico_hnl`.
+- Rotar la contraseña de la base de datos en Supabase y reemplazar `DATABASE_URL` en los secretos de CI y en `.env.local` local.
+- Acción 4 (S02/S03): `marcar_comprado` confía en el snapshot del cliente y no hay función servidor para confirmar revisiones. Pendiente decidir si se documenta como limitación (único propietario, RLS aísla a terceros) o se implementa.
 
 ### Siguientes acciones mínimas
-1. Probar en navegador el editor (año, fees, VIN duplicado, Nashville) con la autenticación real de Supabase.
-2. Decidir las discrepancias de grúas y la etiqueta de Nashville.
-3. Autorizar, si aplica, la revisión del esquema remoto para la migración `20261020000100`.
+1. Rotar la contraseña de Supabase y crear los secretos y variables de GitHub (entorno `produccion`) y de Cloudflare Pages.
+2. Ejecutar el workflow `publicar.yml` escribiendo `PUBLICAR`, y comprobar la URL con una sesión real.
+3. Probar en navegador el editor y el listado con la autenticación real de Supabase.
 
 ## Ronda 2026-10-20 (autocompletado del editor): cambios y verificación
 

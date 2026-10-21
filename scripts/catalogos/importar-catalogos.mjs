@@ -49,6 +49,11 @@ function construirFilas(catalogos) {
     fuente_archivo: r.source_file,
     fuente_hoja: r.source_sheet,
     fuente_fila: r.source_row,
+    alias_sedes: aJson(r.alias_sedes ?? []),
+    monto_usd_anterior: r.amount_usd_excel_anterior ?? null,
+    fuente_tarifa: r.fuente_tarifa ?? null,
+    pdf_pagina: r.pdf_pagina ?? null,
+    version_tarifa: r.version_tarifa ?? null,
   }));
 
   const filasEmbarques = embarques.rates.map((r) => ({

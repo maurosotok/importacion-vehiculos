@@ -6,6 +6,8 @@ export type CotizacionVin = {
   referencia: string | null;
   updated_at: string;
   vin: string | null;
+  fecha_subasta: string | null;
+  vendido_en_subasta: boolean;
 };
 
 export function buscarDuplicadosVin(filas: CotizacionVin[], vinTexto: string, excluirId: string): CotizacionVin[] {

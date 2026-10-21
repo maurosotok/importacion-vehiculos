@@ -12,7 +12,7 @@ Estas decisiones reemplazan los requisitos incompatibles de la versión anterior
 | Otros perfiles | Selector con familias IAA/Copart y parámetros propios; opción personalizada/manual. |
 | Impuestos | Solo captura manual. Investigación fiscal y API de SARAH totalmente en standby. |
 | Gastos locales | Matrícula, IP, agente aduanero y votainer diferenciados del impuesto cuando haya desglose. |
-| Pago único | Botón manual de L10000, sin deducir elegibilidad por año, motor u origen. |
+| Pago único | Sustituido el 2026-10-21: vehículo de 2010 o anterior, impuesto L10,000 y gastos locales L11,000; 2011 o posterior, impuesto manual y gastos locales L13,557 editables. Presupuesto interno, no cifra oficial de Aduanas. Editable, sin bloqueos, sin sobrescribir importes capturados. |
 | L20-21 mil | Referencia del usuario para gastos locales; no total obligatorio ni tasa oficial. |
 | Históricos | Se quedan en Excel. Los casos de prueba tampoco se cargan como operaciones en producción. |
 | Módulos | Vehículos y Repuestos; Configuración secundaria. |
@@ -23,8 +23,8 @@ El usuario escribe: "Los 20-21 son por matrícula, IP, agente aduanero, votainer
 impuestos del pago único". No extrapolar esta explicación a todas las filas antiguas. La
 aplicación permite registrar esas partidas por separado. Si introduce L21000 de gastos locales
 y L10000 de impuesto, suma L31000. Si introduce un total combinado que ya contiene todo,
-ese total es el único que se suma. Ninguno de estos importes se aplica automáticamente al crear
-una cotización. No hay una elección fiscal que bloquee desarrollar la aplicación.
+ese total es el único que se suma. Salvo la regla por año de la fila «Pago único» (2026-10-21), ninguno de
+estos importes se aplica automáticamente al crear una cotización. No hay una elección fiscal que bloquee desarrollar la aplicación.
 
 En el caso 104, L50297.89 permanece como total manual de salida heredado de la columna U.
 No se deriva su desglose, no se agrega encima L10000 ni L20000, y no se reutiliza para otro VIN.

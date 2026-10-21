@@ -63,6 +63,7 @@ export type CotizacionFila = {
   barco_referencia_clave: string | null;
   vendedor: string | null;
   fecha_subasta: string | null;
+  vendido_en_subasta: boolean;
   max_bid_manual_usd: Numero;
   verificacion_bidcars: string | null;
   row_version: number;
@@ -102,6 +103,7 @@ export type Campos = {
   barcoReferenciaClave: string;
   vendedor: string;
   fechaSubasta: string;
+  vendidoEnSubasta: boolean;
   maxBidManualUsd: string;
   verificacionBidcars: string;
 };
@@ -194,6 +196,7 @@ export function aFormulario(vehiculo: VehiculoFila, cotizacion: CotizacionFila):
     barcoReferenciaClave: textoODefecto(cotizacion.barco_referencia_clave),
     vendedor: textoODefecto(cotizacion.vendedor),
     fechaSubasta: textoODefecto(cotizacion.fecha_subasta),
+    vendidoEnSubasta: cotizacion.vendido_en_subasta,
     maxBidManualUsd: num(cotizacion.max_bid_manual_usd),
     verificacionBidcars: textoODefecto(cotizacion.verificacion_bidcars),
   };
@@ -247,11 +250,13 @@ export function construirParches(campos: Campos): ParchesFormulario {
   if (!fecha.valido) invalidos.push('fechaSubasta');
   else cotizacion.fecha_subasta = fecha.valor;
 
+  cotizacion.vendido_en_subasta = campos.vendidoEnSubasta;
+
   vehiculo.marca = textoONulo(campos.marca);
   vehiculo.modelo = textoONulo(campos.modelo);
   vehiculo.version = textoONulo(campos.version);
 
-  for (const [clave, columna] of Object.entries(COLUMNAS_COTIZACION) as [keyof Campos, keyof CotizacionFila][]) {
+  for (const [clave, columna] of Object.entries(COLUMNAS_COTIZACION) as [Exclude<keyof Campos, 'vendidoEnSubasta'>, keyof CotizacionFila][]) {
     const valor = campos[clave];
     if (!NUMERICOS.has(clave)) {
       cotizacion[columna] = clave === 'modoFees' || clave === 'modoImpuestos' ? valor : textoONulo(valor);

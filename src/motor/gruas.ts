@@ -2,12 +2,19 @@ import { claveComparable, codigoEstadoOrigen, normalizarTexto, parsearSede } fro
 
 export { normalizarTexto };
 
+export type AliasSedeGrua = {
+  sede: string;
+  estado: string;
+  subastas: readonly string[];
+};
+
 export type FilaGrua = {
   id: string;
   ubicacion: string;
   zona: string;
   estadoOrigen: string | null;
   montoUsd: string | null;
+  aliasSedes?: readonly AliasSedeGrua[];
 };
 
 export type CoincidenciaGrua = {
@@ -39,7 +46,19 @@ export function limpiarEtiquetaGrua(texto: string): string {
   return base;
 }
 
-export function buscarGruas(filas: FilaGrua[], consulta: string, zona: string | null): CoincidenciaGrua[] {
+function aliasConfirma(fila: FilaGrua, nombre: string, estado: string | null, subasta: string | null): boolean {
+  if (estado === null || subasta === null) return false;
+  return (fila.aliasSedes ?? []).some(
+    (alias) => claveComparable(alias.sede) === nombre && alias.estado === estado && alias.subastas.includes(subasta),
+  );
+}
+
+export function buscarGruas(
+  filas: FilaGrua[],
+  consulta: string,
+  zona: string | null,
+  subasta: string | null = null,
+): CoincidenciaGrua[] {
   const sede = parsearSede(consulta);
   const nombre = claveComparable(sede.nombre);
   if (nombre === '') return [];
@@ -48,6 +67,8 @@ export function buscarGruas(filas: FilaGrua[], consulta: string, zona: string | 
     if (sede.estado !== null && codigoEstadoOrigen(fila.estadoOrigen) !== sede.estado) return [];
     const etiqueta = claveComparable(fila.ubicacion);
     if (!etiqueta.includes(nombre)) return [];
+    const verificada =
+      etiqueta === `${nombre} IAA` || etiqueta === nombre || aliasConfirma(fila, nombre, sede.estado, subasta);
     return [
       {
         id: fila.id,
@@ -55,7 +76,7 @@ export function buscarGruas(filas: FilaGrua[], consulta: string, zona: string | 
         zona: fila.zona,
         estadoOrigen: fila.estadoOrigen,
         montoUsd: fila.montoUsd,
-        verificada: etiqueta === `${nombre} IAA`,
+        verificada,
       },
     ];
   });

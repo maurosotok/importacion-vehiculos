@@ -114,9 +114,10 @@ Dejar claro en pantalla que el modo total ya incluye el desglose. Cambiar de mod
 ocultos. Al pasar de total a desglose, guardar el antiguo total como referencia, no repartido
 arbitrariamente entre partidas. Los incompletos se guardan como pendientes.
 
-Presets personales opcionales: acceso rápido L10000 para impuesto de pago único, y referencia
-L20000/L21000 para gastos locales conforme al último mensaje. No activarlos por año ni para
-todas las cotizaciones. No inferir si una fila anterior incluye esos conceptos. El caso 104
+Regla por año (2026-10-21): vehículo de 2010 o anterior, impuesto L10,000 y gastos locales
+L11,000; 2011 o posterior, impuesto manual y gastos locales L13,557 editables. Son presupuestos
+internos del usuario, no cifras oficiales de Aduanas; no sobrescriben importes capturados. La
+referencia L20000/L21000 para gastos locales es solo informativa. No inferir si una fila anterior incluye esos conceptos. El caso 104
 conserva L50297.89 completo en modo total, sin agregar impuestos o gastos locales encima.
 
 Guardar amount, mode, entered_at, source_note opcional y parámetros de la cotización al capturar.

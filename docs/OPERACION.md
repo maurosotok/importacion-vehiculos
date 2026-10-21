@@ -40,14 +40,16 @@ contra producción. Los resultados verificados en el repositorio están en `docs
   excluyentes:
   1. Total combinado en HNL: una sola cifra que incluye impuestos y gastos locales.
   2. Desglose: impuestos + gastos locales (matrícula, IP, agente aduanero, votainer, otros).
-- Nunca se suman ambos modos. L10000 es un acceso rápido que el usuario pulsa a propósito; no se
-  aplica por año, motor ni origen. Los rangos de referencia L20000–21000 son solo informativos.
+- Nunca se suman ambos modos. Regla por año (2026-10-21): vehículo de 2010 o anterior, impuesto
+  L10,000 y gastos locales L11,000; 2011 o posterior, impuesto vacío y gastos locales L13,557. Son
+  presupuestos internos del usuario, no cifras oficiales de Aduanas; son editables y no sobrescriben
+  importes capturados. Los rangos de referencia L20000–21000 son solo informativos.
 - Cambiar la puja, el flete o el tipo de cambio conserva el impuesto manual y muestra un aviso
   informativo; no exige recalcular ni confirmar.
 - Un impuesto no ingresado deja la cotización en estado pendiente. No se trata como cero.
-- Gastos locales y salida: 13,557 HNL es un valor predeterminado editable por usuario en
-  Configuración. Se copia a cada cotización nueva al crearla; cambiarlo después no modifica
-  cotizaciones existentes. No es una regla por año.
+- Gastos locales y salida: 13,557 HNL es el valor predeterminado editable para vehículos de 2011 o
+  posterior, en Configuración. Se copia a cada cotización nueva al crearla; cambiarlo después no
+  modifica cotizaciones existentes.
 
 ## 4. Copia de seguridad y restauración
 - Ensayo de restauración (sin tocar producción): `npm run db:ensayar-restauracion`.
@@ -93,7 +95,21 @@ contra producción. Los resultados verificados en el repositorio están en `docs
 - Comprobación de versión: `https://<url>/version.json` debe mostrar el SHA del commit desplegado.
   La función `version` responde 401 o 403 sin sesión.
 
-## 7. Limitaciones reales (a fecha de esta entrega)
+## 7. Listado de Vehículos, vendido y eliminación (2026-10-21)
+- Al entrar, el listado muestra subastas de hoy en adelante, Vendido "Todos" y oculta las subastas
+  pasadas vendidas. "Mostrar todas" limpia los filtros. Los filtros solo cambian la vista; nada se
+  archiva automáticamente.
+- "Vendido" significa vendido en esa subasta (`quotes.vendido_en_subasta`). No significa venta en
+  Honduras. Se cambia desde la lista (se guarda al momento) o desde el formulario.
+- "Eliminar" archiva la cotización (`quotes.deleted_at`) con `archivar_cotizacion`. No borra compras,
+  gastos ni revisiones. Ningún usuario autenticado puede borrar filas de `quotes` físicamente.
+  `restaurar_cotizacion` devuelve una cotización archivada; la interfaz aún no tiene botón para ello.
+- Un VIN repetido muestra un aviso con la fecha de subasta y el estado vendido de las otras
+  cotizaciones. Nunca bloquea.
+- Estas funciones requieren aplicar `20261021000200` en Supabase. Hasta entonces el listado remoto
+  falla, porque `deleted_at` no existe.
+
+## 8. Limitaciones reales (a fecha de esta entrega)
 - El editor de cotización usa la tabla de fees (perfil, modalidad, "Volver a tarifa automática" y
   desglose guardado). No se ha probado en navegador. Grúa y barco se sugieren al cambiar ubicación
   o zona.
@@ -109,6 +125,5 @@ contra producción. Los resultados verificados en el repositorio están en `docs
 - Supabase CLI no se ha ejecutado contra un proyecto; el workflow no se ha ejecutado en GitHub.
 - No se ha desplegado ni publicado nada. No hay URL pública verificada.
 - La carpeta `Python/` (distribución de Python 3.15, 2399 archivos) está rastreada en el commit
-  inicial. Todos los 477 errores de `npm run lint` (raíz) vienen de ahí; el código del proyecto no
-  tiene errores de lint. Quitarla del repositorio (`git rm -r --cached` y `.gitignore`, o moverla
+  inicial. `eslint.config.js` excluye `Python/`, así que `npm run lint` no reporta sus archivos. Quitarla del repositorio (`git rm -r --cached` y `.gitignore`, o moverla
   fuera) es decisión del usuario.

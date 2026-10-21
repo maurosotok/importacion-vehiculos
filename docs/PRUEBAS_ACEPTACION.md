@@ -58,7 +58,25 @@
 | A02 | Perfil IAA Standard Volume con puja 2000, 3500, 3750, 4000 | Fees 795, 965, 965, 1000 automáticos; "Carro + Fees" = Puja + Fees efectivos; un fee manual sustituye y "Volver a automático" restaura. |
 | A03 | VIN ya guardado en otra cotización del mismo propietario | Aviso "Este vehículo ya tiene una cotización guardada.", abrir existente como acción principal, crear nueva como secundaria; no bloquea ni sobrescribe el formulario abierto. |
 | A04 | Honda CR-V 2007, IAA, puja 2000, grúa 500, barco 825, papelería 15, TC 27.0281, reparación L20,000, venta L190,000 | Partidas USD 4135; importado L132,761.19; inversión L152,761.19; utilidad L37,238.81. |
-| A05 | Sede "Nashville (TN)" | US$500 solo como sugerencia pendiente de confirmación; no se aplica ni confirma automáticamente porque "Nashville Copart - IAA" no puede verificarse como IAA Nashville. No bloquea la cotización. |
+| A05 | Sede "Nashville (TN)" con IAA o COPART | US$500 aplicado (confirmación del usuario 2026-10-21; ver RV02). Sin subasta definida, queda pendiente. No bloquea la cotización. |
+
+## Ronda 2026-10-21: tarifas PDF, Nashville, VIN, listado y archivado
+| ID | Escenario | Resultado esperado |
+|---|---|---|
+| RV01 | Nueve tarifas de grúa del PDF | Las nueve filas muestran el importe nuevo y conservan el anterior; la migración solo cambia importes anteriores, es idempotente y no toca cotizaciones. |
+| RV02 | Nashville (TN) con IAA o COPART | US$500, zona FLORIDA, sin pendiente. |
+| RV03 | Nashville sin subasta, con TX o KY, o sin estado | Pendiente o sin coincidencia; no aplica tarifa. |
+| RV04 | VIN `JHLRE38797C009075` (17 caracteres) | Válido. El VIN de 16 caracteres `JHLRE38797C00907` se marca incompleto y no se completa solo. |
+| RV05 | Corregir el VIN de un vehículo guardado | Cambia el VIN; la cotización y sus compras se conservan. |
+| RV06 | VIN ya guardado en otra subasta | Aviso con fecha de subasta y estado vendido; no bloquea. |
+| RV07 | Orden del listado | Fecha de subasta ascendente; sin fecha al final; fechas en America/Tegucigalpa sin desfase UTC. |
+| RV08 | Filtros al entrar y "Mostrar todas" | Hoy en adelante, Vendido "Todos", pasadas vendidas ocultas; "Mostrar todas" limpia; nada se archiva. |
+| RV09 | Marcar "Vendido" en la lista | Guardado inmediato y persistente; editable en el formulario; no bloquea VIN duplicado ni nuevas subastas. |
+| RV10 | Eliminar con confirmación | Archivado lógico; compras, gastos y revisiones se conservan; borrador sin datos con texto especial; doble clic protegido. |
+| RV11 | Otro usuario archiva o ve una cotización ajena | Denegado por RLS y por la función (`owner_id`). |
+| RV12 | Borrado físico de `quotes` como usuario autenticado | Denegado. |
+| RV13 | Restaurar una cotización archivada | La función la devuelve al listado. La interfaz no tiene botón todavía. |
+
 
 ## Datos y producción
 | ID | Escenario | Resultado esperado |

@@ -1,8 +1,8 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "prepared_at": "2026-10-19",
   "row_count": 282,
-  "note": "Extracción del catálogo Grúas; no historial de cotizaciones. Texto original conservado. Se cotiza y ceros no confirmados son importes desconocidos, no viajes gratis. Las ambiguedades no impiden cotizar manualmente.",
+  "note": "Extracción del catálogo Grúas; no historial de cotizaciones. Texto original conservado. Se cotiza y ceros no confirmados son importes desconocidos, no viajes gratis. Las ambiguedades no impiden cotizar manualmente. Versión 3: las nueve tarifas de grúa indicadas por el usuario usan el PDF North Atlantic como fuente definitiva; el importe del Excel queda en amount_usd_excel_anterior.",
   "rates": [
     {
       "id": "NA-XLSX-GRUAS-0003",
@@ -1187,7 +1187,7 @@
       "origin_state_raw": "NEW JERSEY",
       "location_label_raw": "Central New Jersey - IAACentral New Jersey - IAA $165.00$165.00",
       "display_label": "Central New Jersey - IAACentral New Jersey - IAA $165.00$165.00",
-      "amount_usd": "165.00",
+      "amount_usd": "275.00",
       "raw_price": 165,
       "raw_snow_note": "Si",
       "status": "usable_reference",
@@ -1200,7 +1200,11 @@
       "source_row": 56,
       "source_range": "C56:G56",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "165.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 4,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0057",
@@ -1655,7 +1659,7 @@
       "origin_state_raw": "FLORIDA",
       "location_label_raw": "Orlando - Copart - IAAOrlando - Copart - IAA $200.00$200.00",
       "display_label": "Orlando - Copart - IAAOrlando - Copart - IAA $200.00$200.00",
-      "amount_usd": "200.00",
+      "amount_usd": "225.00",
       "raw_price": 200,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -1668,7 +1672,11 @@
       "source_row": 78,
       "source_range": "C78:G78",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "200.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 7,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0079",
@@ -1677,7 +1685,7 @@
       "origin_state_raw": "FLORIDA",
       "location_label_raw": "Orlando North & South - Copart - IAAOrlando North & South - Copart - IAA $200.00$200.00",
       "display_label": "Orlando North & South - Copart - IAAOrlando North & South - Copart - IAA $200.00$200.00",
-      "amount_usd": "200.00",
+      "amount_usd": "210.00",
       "raw_price": 200,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -1690,7 +1698,11 @@
       "source_row": 79,
       "source_range": "C79:G79",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "200.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 7,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0080",
@@ -1885,7 +1897,7 @@
       "origin_state_raw": "FLORIDA",
       "location_label_raw": "Tampa IAATampa IAA $220.00$220.00",
       "display_label": "Tampa IAATampa IAA $220.00$220.00",
-      "amount_usd": "220.00",
+      "amount_usd": "225.00",
       "raw_price": 220,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -1898,7 +1910,11 @@
       "source_row": 89,
       "source_range": "C89:G89",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "220.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 7,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0090",
@@ -1974,7 +1990,7 @@
       "origin_state_raw": "FLORIDA",
       "location_label_raw": "Orlando IAA - Sublot Boggy GreekOrlando IAA - Sublot Boggy Greek $225.00$225.00",
       "display_label": "Orlando IAA - Sublot Boggy GreekOrlando IAA - Sublot Boggy Greek $225.00$225.00",
-      "amount_usd": "225.00",
+      "amount_usd": "350.00",
       "raw_price": 225,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -1987,7 +2003,11 @@
       "source_row": 93,
       "source_range": "C93:G93",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "225.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 7,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0094",
@@ -2016,7 +2036,7 @@
       "origin_state_raw": "FLORIDA",
       "location_label_raw": "Tampa North IAATampa North IAA $225.00$225.00",
       "display_label": "Tampa North IAATampa North IAA $225.00$225.00",
-      "amount_usd": "225.00",
+      "amount_usd": "265.00",
       "raw_price": 225,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -2029,7 +2049,11 @@
       "source_row": 95,
       "source_range": "C95:G95",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "225.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 7,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0096",
@@ -2144,7 +2168,7 @@
       "origin_state_raw": "FLORIDA",
       "location_label_raw": "Tampa US41 IAATampa US41 IAA $250.00$250.00",
       "display_label": "Tampa US41 IAATampa US41 IAA $250.00$250.00",
-      "amount_usd": "250.00",
+      "amount_usd": "200.00",
       "raw_price": 250,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -2157,7 +2181,11 @@
       "source_row": 101,
       "source_range": "C101:G101",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "250.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 7,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0102",
@@ -2578,7 +2606,7 @@
       "origin_state_raw": "VIRGINIA",
       "location_label_raw": "Richmond - Copart - IAARichmond - Copart - IAA $270.00$270.00",
       "display_label": "Richmond - Copart - IAARichmond - Copart - IAA $270.00$270.00",
-      "amount_usd": "270.00",
+      "amount_usd": "325.00",
       "raw_price": 270,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -2591,7 +2619,11 @@
       "source_row": 121,
       "source_range": "C121:G121",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "270.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 6,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0122",
@@ -3526,7 +3558,7 @@
       "origin_state_raw": "VIRGINIA",
       "location_label_raw": "Richmond Doswell - IAARichmond Doswell - IAA $350.00$350.00",
       "display_label": "Richmond Doswell - IAARichmond Doswell - IAA $350.00$350.00",
-      "amount_usd": "350.00",
+      "amount_usd": "500.00",
       "raw_price": 350,
       "raw_snow_note": null,
       "status": "usable_reference",
@@ -3539,7 +3571,11 @@
       "source_row": 165,
       "source_range": "C165:G165",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "amount_usd_excel_anterior": "350.00",
+      "fuente_tarifa": "pdf_north_atlantic",
+      "pdf_pagina": 6,
+      "version_tarifa": "2026-10-21-pdf"
     },
     {
       "id": "NA-XLSX-GRUAS-0166",
@@ -5093,7 +5129,18 @@
       "source_row": 238,
       "source_range": "C238:G238",
       "source_date": null,
-      "verified_current": false
+      "verified_current": false,
+      "alias_sedes": [
+        {
+          "sede": "NASHVILLE",
+          "estado": "TN",
+          "subastas": [
+            "IAA",
+            "COPART"
+          ],
+          "fuente": "confirmacion_usuario_2026-10-21"
+        }
+      ]
     },
     {
       "id": "NA-XLSX-GRUAS-0239",
@@ -6074,5 +6121,6 @@
       "source_date": null,
       "verified_current": false
     }
-  ]
+  ],
+  "version_tarifa": "2026-10-21-pdf"
 }

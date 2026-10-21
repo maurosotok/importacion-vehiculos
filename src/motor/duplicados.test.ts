@@ -5,7 +5,7 @@ const VIN = '1HGCM82633A004352';
 const OTRO_VIN = '1HGCM82633A004399';
 
 function cotizacion(id: string, vin: string | null, updated_at: string, referencia: string | null = null): CotizacionVin {
-  return { id, estado: 'borrador', referencia, updated_at, vin };
+  return { id, estado: 'borrador', referencia, updated_at, vin, fecha_subasta: null, vendido_en_subasta: false };
 }
 
 const filas: CotizacionVin[] = [

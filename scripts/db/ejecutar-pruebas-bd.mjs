@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +11,8 @@ import { aplicarMigraciones } from './esquema-local.mjs';
 
 const PUERTO_LOCAL = 54329;
 const CLAVE_LOCAL = 'prueba-local-no-productiva';
+const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const MIGRACION_TARIFAS = path.join(RAIZ, 'supabase', 'migrations', '20261021000100_correccion_tarifas_grua_pdf.sql');
 
 const ESPERADOS_CATALOGO = {
   fee_profiles: 10,
@@ -475,6 +477,182 @@ const PRUEBAS = [
       assert.ok(propietario.rows.length >= 1);
       const externo = await comoRol(cliente, 'authenticated', usuarios.externo, buscar);
       assert.equal(externo.rows.length, 0);
+    },
+  },
+  {
+    id: 'C01',
+    nombre: 'El estado vendido se guarda por cotización y otro usuario no lo cambia',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const propio = await comoRol(cliente, 'authenticated', usuarios.propietario, async () => {
+        const cambio = await cliente.query(
+          'update public.quotes set vendido_en_subasta = true where id = $1',
+          [datos.cotizacion],
+        );
+        const lectura = await cliente.query('select vendido_en_subasta from public.quotes where id = $1', [datos.cotizacion]);
+        assert.equal(lectura.rows[0].vendido_en_subasta, true);
+        return cambio.rowCount;
+      });
+      assert.equal(propio, 1);
+      const ajeno = await comoRol(cliente, 'authenticated', usuarios.ajeno, async () => {
+        const cambio = await cliente.query('update public.quotes set vendido_en_subasta = false where id = $1', [datos.cotizacion]);
+        return cambio.rowCount;
+      });
+      assert.equal(ajeno, 0);
+    },
+  },
+  {
+    id: 'C02',
+    nombre: 'Archivar una cotización conserva compras, gastos y revisiones',
+    async ejecutar({ cliente, usuarios, datos }) {
+      await comoRol(cliente, 'authenticated', usuarios.propietario, async () => {
+        const primera = await cliente.query('select public.archivar_cotizacion($1) as ok', [datos.cotizacion]);
+        assert.equal(primera.rows[0].ok, true);
+        const segunda = await cliente.query('select public.archivar_cotizacion($1) as ok', [datos.cotizacion]);
+        assert.equal(segunda.rows[0].ok, false, 'una cotización ya archivada no vuelve a archivarse');
+        const { rows: archivada } = await cliente.query('select deleted_at from public.quotes where id = $1', [datos.cotizacion]);
+        assert.notEqual(archivada[0].deleted_at, null);
+        const { rows } = await cliente.query(
+          `select (select count(*)::int from public.purchases where quote_id = $1) as compras,
+                  (select count(*)::int from public.purchase_expenses where purchase_id = $2) as gastos,
+                  (select count(*)::int from public.quote_revisions where quote_id = $1) as revisiones`,
+          [datos.cotizacion, datos.compra],
+        );
+        assert.deepEqual(rows[0], { compras: 1, gastos: 1, revisiones: 1 });
+      });
+    },
+  },
+  {
+    id: 'C03',
+    nombre: 'Otro usuario no puede archivar una cotización ajena',
+    async ejecutar({ cliente, usuarios, datos }) {
+      await comoRol(cliente, 'authenticated', usuarios.ajeno, async () => {
+        const resultado = await cliente.query('select public.archivar_cotizacion($1) as ok', [datos.cotizacion]);
+        assert.equal(resultado.rows[0].ok, false);
+        await cliente.query('reset role');
+        const { rows } = await cliente.query('select deleted_at from public.quotes where id = $1', [datos.cotizacion]);
+        assert.equal(rows[0].deleted_at, null);
+      });
+    },
+  },
+  {
+    id: 'C04',
+    nombre: 'Un usuario autenticado no puede borrar cotizaciones físicamente',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const borrado = await comoRol(cliente, 'authenticated', usuarios.propietario, () =>
+        intentar(cliente, 'delete from public.quotes where id = $1', [datos.cotizacion]),
+      );
+      assert.equal(borrado.ok, false);
+      assert.equal(borrado.codigo, '42501');
+    },
+  },
+  {
+    id: 'C05',
+    nombre: 'Una cotización archivada se puede restaurar',
+    async ejecutar({ cliente, usuarios, datos }) {
+      await comoRol(cliente, 'authenticated', usuarios.propietario, async () => {
+        await cliente.query('select public.archivar_cotizacion($1)', [datos.cotizacion]);
+        const restaurada = await cliente.query('select public.restaurar_cotizacion($1) as ok', [datos.cotizacion]);
+        assert.equal(restaurada.rows[0].ok, true);
+        const { rows } = await cliente.query('select deleted_at from public.quotes where id = $1', [datos.cotizacion]);
+        assert.equal(rows[0].deleted_at, null);
+      });
+    },
+  },
+  {
+    id: 'C06',
+    nombre: 'Un mismo VIN admite varias cotizaciones y subastas sin bloqueo',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const vin = 'JHLRE38797C009075';
+      await cliente.query('update public.vehicles set vin = $1 where id = $2', [vin, datos.vehiculoPropio]);
+      const nuevaSubasta = await intentar(
+        cliente,
+        'insert into public.quotes (owner_id, vehicle_id, fecha_subasta, vendido_en_subasta) values ($1, $2, $3, true) returning id',
+        [usuarios.propietario, datos.vehiculoPropio, '2026-11-10'],
+      );
+      assert.equal(nuevaSubasta.ok, true, nuevaSubasta.mensaje);
+      const otroVehiculo = await intentar(
+        cliente,
+        'insert into public.vehicles (owner_id, vin, marca) values ($1, $2, $3) returning id',
+        [usuarios.propietario, vin, 'Honda'],
+      );
+      assert.equal(otroVehiculo.ok, true, otroVehiculo.mensaje);
+    },
+  },
+  {
+    id: 'C07',
+    nombre: 'La corrección de tarifas cambia solo importes anteriores, respeta ediciones y no toca cotizaciones',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const sql = await readFile(MIGRACION_TARIFAS, 'utf8');
+      const monto = async (clave, columna = 'monto_usd') => {
+        const { rows } = await cliente.query(
+          `select ${columna} as valor from public.towing_rates where owner_id = $1 and clave = $2`,
+          [usuarios.propietario, clave],
+        );
+        return rows[0].valor === null ? null : Number(rows[0].valor);
+      };
+      await cliente.query(
+        'update public.towing_rates set monto_usd = 225 where owner_id = $1 and clave = $2',
+        [usuarios.propietario, 'NA-XLSX-GRUAS-0095'],
+      );
+      await cliente.query(
+        'update public.towing_rates set monto_usd = 230 where owner_id = $1 and clave = $2',
+        [usuarios.propietario, 'NA-XLSX-GRUAS-0089'],
+      );
+      await cliente.query(
+        'update public.quotes set grua_usd = 225, grua_referencia_clave = $2 where id = $1',
+        [datos.cotizacion, 'NA-XLSX-GRUAS-0095'],
+      );
+
+      await cliente.query(sql);
+      assert.equal(await monto('NA-XLSX-GRUAS-0095'), 265);
+      assert.equal(await monto('NA-XLSX-GRUAS-0095', 'monto_usd_anterior'), 225);
+      assert.equal(await monto('NA-XLSX-GRUAS-0095', 'pdf_pagina'), 7);
+      assert.equal(await monto('NA-XLSX-GRUAS-0089'), 230, 'una tarifa editada a mano no se sobrescribe');
+
+      await cliente.query(sql);
+      assert.equal(await monto('NA-XLSX-GRUAS-0095'), 265, 'segunda ejecución sin cambios');
+      assert.equal(await monto('NA-XLSX-GRUAS-0095', 'monto_usd_anterior'), 225);
+
+      const { rows: cotizacion } = await cliente.query(
+        'select grua_usd, grua_referencia_clave from public.quotes where id = $1',
+        [datos.cotizacion],
+      );
+      assert.equal(Number(cotizacion[0].grua_usd), 225, 'la cotización conserva el importe que guardó');
+      assert.equal(cotizacion[0].grua_referencia_clave, 'NA-XLSX-GRUAS-0095');
+
+      const { rows: nashville } = await cliente.query(
+        `select alias_sedes->0->>'sede' as sede from public.towing_rates where owner_id = $1 and clave = 'NA-XLSX-GRUAS-0238'`,
+        [usuarios.propietario],
+      );
+      assert.equal(nashville[0].sede, 'NASHVILLE');
+    },
+  },
+  {
+    id: 'C08',
+    nombre: 'Corregir el VIN de un vehículo conserva la cotización y su compra',
+    async ejecutar({ cliente, usuarios, datos }) {
+      await comoRol(cliente, 'authenticated', usuarios.propietario, async () => {
+        const incompleto = await cliente.query('update public.vehicles set vin = $1 where id = $2 returning id', [
+          'JHLRE38797C00907',
+          datos.vehiculoPropio,
+        ]);
+        assert.equal(incompleto.rowCount, 1, 'un VIN incompleto se puede guardar');
+        const correccion = await cliente.query(
+          'update public.vehicles set vin = $1 where id = $2 returning id',
+          ['JHLRE38797C009075', datos.vehiculoPropio],
+        );
+        assert.equal(correccion.rowCount, 1);
+        const { rows } = await cliente.query(
+          `select v.vin,
+                  (select count(*)::int from public.quotes q where q.vehicle_id = v.id) as cotizaciones,
+                  (select count(*)::int from public.purchases p where p.quote_id = $2) as compras
+           from public.vehicles v where v.id = $1`,
+          [datos.vehiculoPropio, datos.cotizacion],
+        );
+        assert.equal(rows[0].vin, 'JHLRE38797C009075');
+        assert.equal(rows[0].cotizaciones, 1);
+        assert.equal(rows[0].compras, 1);
+      });
     },
   },
 ];

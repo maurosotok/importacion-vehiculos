@@ -24,8 +24,17 @@ import {
 } from '../motor/calculo';
 import { buscarBarcoReferencia, type MapeoTipoVehiculo, type TarifaEmbarque } from '../motor/referencias';
 import type { VersionFees } from '../motor/fees';
-import { buscarGruas, limpiarEtiquetaGrua, resolverGrua, zonaSugerida, type CoincidenciaGrua, type FilaGrua } from '../motor/gruas';
+import {
+  buscarGruas,
+  limpiarEtiquetaGrua,
+  resolverGrua,
+  zonaSugerida,
+  type AliasSedeGrua,
+  type CoincidenciaGrua,
+  type FilaGrua,
+} from '../motor/gruas';
 import { buscarDuplicadosVin, type CotizacionVin } from '../motor/duplicados';
+import { formatearFechaCorta } from '../lib/listadoVehiculos';
 import {
   anioDesdeTexto,
   GASTOS_LOCALES_PREDETERMINADOS_HNL,
@@ -103,6 +112,7 @@ type FilaGruaBd = {
   estado_origen: string | null;
   etiqueta: string;
   monto_usd: number | string | null;
+  alias_sedes: AliasSedeGrua[] | null;
 };
 type FilaAjustes = { gastos_locales_predeterminado_hnl: number | string | null };
 type FilaVersionFees = { fee_profile_clave: string; contenido: unknown };
@@ -111,6 +121,8 @@ type FilaDuplicadoBd = {
   estado: string;
   referencia: string | null;
   updated_at: string;
+  fecha_subasta: string | null;
+  vendido_en_subasta: boolean;
   vehicles: { vin: string | null } | null;
 };
 
@@ -143,7 +155,7 @@ async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' |
     supabase.from('fee_profiles').select('clave, etiqueta, estado_tabla, seleccionable').order('etiqueta'),
     supabase.from('vehicle_type_mappings').select('tipo_codigo, zona_salida, categoria_origen'),
     supabase.from('shipping_rates').select('clave, zona_salida, categoria, monto').eq('moneda', 'USD'),
-    supabase.from('towing_rates').select('clave, zona_salida, estado_origen, etiqueta, monto_usd'),
+    supabase.from('towing_rates').select('clave, zona_salida, estado_origen, etiqueta, monto_usd, alias_sedes'),
     supabase.from('user_settings').select('gastos_locales_predeterminado_hnl').maybeSingle(),
     supabase.from('fee_schedule_versions').select('fee_profile_clave, contenido').eq('es_activa', true),
   ]);
@@ -190,6 +202,7 @@ async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' |
         zona: g.zona_salida,
         estadoOrigen: g.estado_origen,
         montoUsd: aTextoONulo(g.monto_usd),
+        aliasSedes: g.alias_sedes ?? [],
       })),
     },
   };
@@ -234,7 +247,9 @@ function conZonaSugerida(entrada: Partial<Campos>, actual: Campos, gruas: FilaGr
 function tarifaGruaAutomatica(siguiente: Campos, gruas: FilaGrua[]): Partial<Campos> {
   if (siguiente.gruaFuente === 'manual') return {};
   const coincidencias: CoincidenciaGrua[] =
-    siguiente.ubicacion.trim() === '' ? [] : buscarGruas(gruas, siguiente.ubicacion, siguiente.zonaSalida || null);
+    siguiente.ubicacion.trim() === ''
+      ? []
+      : buscarGruas(gruas, siguiente.ubicacion, siguiente.zonaSalida || null, siguiente.subasta || null);
   const resolucion = resolverGrua(coincidencias);
   if (resolucion.estado === 'unica') {
     return { gruaUsd: resolucion.montoUsd, gruaFuente: 'referencia', gruaReferenciaClave: resolucion.coincidencias[0]?.id ?? '' };
@@ -409,9 +424,10 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
         }
         void supabase
           .from('quotes')
-          .select('id, estado, referencia, updated_at, vehicles!inner(vin)')
+          .select('id, estado, referencia, updated_at, fecha_subasta, vendido_en_subasta, vehicles!inner(vin)')
           .eq('vehicles.vin', vin)
           .neq('id', cotizacionId)
+          .is('deleted_at', null)
           .order('updated_at', { ascending: false })
           .limit(5)
           .then(({ data, error: fallo }) => {
@@ -427,6 +443,8 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
               estado: fila.estado,
               referencia: fila.referencia,
               updated_at: fila.updated_at,
+              fecha_subasta: fila.fecha_subasta,
+              vendido_en_subasta: fila.vendido_en_subasta,
               vin: fila.vehicles?.vin ?? null,
             }));
             setErrorDuplicados(false);
@@ -492,7 +510,7 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
   const coincidenciasGrua: CoincidenciaGrua[] =
     campos.ubicacion.trim() === ''
       ? []
-      : buscarGruas(referencias.gruas, campos.ubicacion, campos.zonaSalida || null);
+      : buscarGruas(referencias.gruas, campos.ubicacion, campos.zonaSalida || null, campos.subasta || null);
   const resolucionGrua = resolverGrua(coincidenciasGrua);
   const tarifaGruaUnica = resolucionGrua.estado === 'unica' ? resolucionGrua.coincidencias[0] : undefined;
 
@@ -583,12 +601,16 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
               </div>
               {duplicados[0] && (
                 <div className="ancho-2 aviso-duplicado" role="status">
-                  <p>Este vehículo ya tiene una cotización guardada.</p>
+                  <p>Este VIN ya aparece en cotizaciones guardadas. Puede abrir una existente o crear una nueva.</p>
                   <ul>
                     {duplicados.map((duplicado) => (
                       <li key={duplicado.id}>
                         <a href={`#/vehiculos/${duplicado.id}`}>{duplicado.referencia?.trim() || 'Sin referencia'}</a>{' '}
-                        <small>({ETIQUETA_ESTADO_COTIZACION[duplicado.estado] ?? duplicado.estado})</small>
+                        <small>
+                          ({ETIQUETA_ESTADO_COTIZACION[duplicado.estado] ?? duplicado.estado}; subasta{' '}
+                          {duplicado.fecha_subasta ? formatearFechaCorta(duplicado.fecha_subasta) : 'sin fecha'};{' '}
+                          {duplicado.vendido_en_subasta ? 'vendido en subasta' : 'no vendido'})
+                        </small>
                       </li>
                     ))}
                   </ul>
@@ -942,6 +964,14 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                   aria-invalid={invalidos.includes('fechaSubasta')}
                   onChange={(e) => { cambiar({ fechaSubasta: e.target.value }); }}
                 />
+              </label>
+              <label className="casilla">
+                <input
+                  type="checkbox"
+                  checked={campos.vendidoEnSubasta}
+                  onChange={(e) => { cambiar({ vendidoEnSubasta: e.target.checked }); }}
+                />
+                Vendido en esta subasta
               </label>
               <label>
                 Vendedor

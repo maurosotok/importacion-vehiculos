@@ -26,5 +26,5 @@
   "seed_old_transactions": false,
   "seed_old_market_prices": false,
   "seed_old_part_quotes": false,
-  "startup_note": "La referencia de L20-21 mil para gastos locales y L10000 de pago único no se suma automáticamente. Elegir total combinado o desglose manual. El caso 104 conserva L50297.89 como total ingresado sin descomponer ni agregar otra partida fiscal."
+  "startup_note": "La referencia de L20-21 mil para gastos locales es solo informativa. La regla por año (2010 o anterior: impuesto L10000 y gastos locales L11000; 2011 o posterior: gastos locales L13557) es un presupuesto interno editable y no se suma a un total combinado ya capturado. Elegir total combinado o desglose manual. El caso 104 conserva L50297.89 como total ingresado sin descomponer ni agregar otra partida fiscal."
 }

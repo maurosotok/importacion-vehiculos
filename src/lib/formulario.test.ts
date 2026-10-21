@@ -58,6 +58,7 @@ const cotizacion: CotizacionFila = {
   fecha_subasta: null,
   max_bid_manual_usd: null,
   verificacion_bidcars: null,
+  vendido_en_subasta: false,
   row_version: 1,
 };
 

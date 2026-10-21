@@ -9,13 +9,41 @@ Fuentes privadas (no versionadas, en `fuentes_privadas/`):
 
 Ninguna referencia canadiense ni calculadora de terceros se usó como fuente.
 
+## Corrección 2026-10-21: nueve importes de grúa tomados del PDF
+
+Decisión del usuario: el PDF North Atlantic es la fuente de estos importes. Se reemplazan los nueve
+importes del Excel; el anterior queda en `raw_price` (y en `monto_usd_anterior` tras la migración
+`20261021000100`). La página es la del PDF `gruas_north_atlantic.pdf`.
+
+| ID | Zona | Etiqueta | Origen | Excel (anterior) | PDF (nuevo) | Página |
+|---|---|---|---|---|---|---|
+| NA-XLSX-GRUAS-0056 | DELAWARE | Central New Jersey - IAA | NEW JERSEY | 165 | 275 | 4 |
+| NA-XLSX-GRUAS-0078 | FLORIDA | Orlando - Copart - IAA | FLORIDA | 200 | 225 | 7 |
+| NA-XLSX-GRUAS-0079 | FLORIDA | Orlando North & South - Copart - IAA | FLORIDA | 200 | 210 | 7 |
+| NA-XLSX-GRUAS-0089 | FLORIDA | Tampa IAA | FLORIDA | 220 | 225 | 7 |
+| NA-XLSX-GRUAS-0093 | FLORIDA | Orlando IAA - Sublot Boggy Greek | FLORIDA | 225 | 350 | 7 |
+| NA-XLSX-GRUAS-0095 | FLORIDA | Tampa North IAA | FLORIDA | 225 | 265 | 7 |
+| NA-XLSX-GRUAS-0101 | FLORIDA | Tampa US41 IAA | FLORIDA | 250 | 200 | 7 |
+| NA-XLSX-GRUAS-0121 | DELAWARE | Richmond - Copart - IAA | VIRGINIA | 270 | 325 | 6 |
+| NA-XLSX-GRUAS-0165 | DELAWARE | Richmond Doswell - IAA | VIRGINIA | 350 | 500 | 6 |
+
+- Orlando Manheim (`NA-XLSX-GRUAS-0086`) no cambia.
+- Richmond Doswell: el origen VIRGINIA viene del Excel; no se verificó en el PDF.
+- Cotizaciones guardadas no cambian: guardan `grua_usd` y `grua_referencia_clave`.
+- Nashville (`NA-XLSX-GRUAS-0238`): "Nashville Copart - IAA", zona FLORIDA, origen TENNESSEE, US$500.
+  El PDF no muestra precio para esa línea en la capa de texto. El importe viene de la confirmación
+  explícita del usuario el 2026-10-21 (válida para Nashville, TN, en IAA y COPART). Conviene revisar
+  visualmente la página 9.
+- Alias: `alias_sedes` = NASHVILLE / TN / subastas IAA y COPART / fuente `confirmacion_usuario_2026-10-21`.
+  Sin subasta definida, la sede queda pendiente; otros estados (TX, KY) no confirman Nashville.
+
 ## Embarques (30 tarifas)
 
 - Catálogo: `data/catalogos/embarques_referencia_2025.json`, 30 filas.
 - Verificación: los 30 montos coinciden con las páginas 1–4 del PDF, revisadas visualmente.
 - Pendiente: `current_provider_confirmation` es `false` en todas las filas. Son referencias de trabajo, no confirmación vigente de la naviera.
 
-## Grúas (282 filas)
+## Grúas (282 filas; nueve importes corregidos al PDF el 2026-10-21)
 
 Catálogo: `data/catalogos/gruas_desde_excel.json`.
 

@@ -288,6 +288,75 @@ legend {
   background: #f0f6fc;
 }
 
+.tabla-contenedor {
+  overflow-x: auto;
+}
+
+.tabla-compacta th,
+.tabla-compacta td {
+  padding: 0.3rem 0.45rem;
+  font-size: 0.9rem;
+}
+
+.listado-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem 0.9rem;
+  margin: 0.6rem 0;
+}
+
+.listado-filtros label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.casilla {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.listado-filtros .casilla {
+  flex-direction: row;
+}
+
+.boton-icono-peligro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #9b1c1c;
+  cursor: pointer;
+}
+
+.boton-icono-peligro:hover:not(:disabled) {
+  background: #fbeaea;
+  border-color: #e7b4b4;
+}
+
+.boton-icono-peligro:focus-visible {
+  outline: 2px solid #9b1c1c;
+  outline-offset: 2px;
+}
+
+.boton-icono-peligro:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.aviso-guardado {
+  color: #1f6f3a;
+  font-size: 0.9rem;
+}
+
 .configuracion {
   max-width: 720px;
 }

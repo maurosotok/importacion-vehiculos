@@ -24,7 +24,9 @@ El usuario es desarrollador experimentado; quiere que implementes, no que devuel
   exenciones, API de SARAH ni reverse engineering. Ni siquiera en el Prompt 4. Es trabajo en standby.
 - Separar impuestos y gastos locales cuando el usuario use desglose; permitir un único total
   manual combinado cuando ya lo tenga. Nunca sumar ambos modos ni duplicar conceptos incluidos.
-  L10000 es un acceso rápido manual aportado por el usuario, NO una regla por año del vehículo.
+  Regla por año (2026-10-21): vehículo de 2010 o anterior, impuesto L10,000 y gastos locales L11,000
+  (presupuesto interno del usuario, no cifra oficial de Aduanas); 2011 o posterior, impuesto manual y
+  gastos locales L13,557 editables. Son editables, nunca bloquean y no sobrescriben importes capturados.
 - Cambiar la puja mantiene el importe manual de impuestos, con indicacion informativa si cambian
   sus parámetros de referencia. NO borrar, exigir recalculo, confirmación ni impedir guardar.
 - No migrar cotizaciones/compras/gastos/precios de mercado antiguos. Si cargar catálogos estándar
