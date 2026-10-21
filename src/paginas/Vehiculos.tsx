@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { irA } from '../lib/ruta';
+import { crearCotizacion } from '../lib/nuevaCotizacion';
 
 type FilaListado = {
   id: string;
@@ -10,9 +11,6 @@ type FilaListado = {
   updated_at: string;
   vehicles: { marca: string | null; modelo: string | null; anio: number | null; vin: string | null } | null;
 };
-
-const GASTOS_LOCALES_PREDETERMINADOS_HNL = '13557';
-const PAPELERIA_PREDETERMINADA_USD = '15';
 
 const ETIQUETA_ESTADO: Record<string, string> = {
   borrador: 'Borrador',
@@ -47,41 +45,13 @@ export function Vehiculos() {
   const nueva = async () => {
     setCreando(true);
     setError(null);
-    const [{ data: ajustes }, { data: predeterminado }] = await Promise.all([
-      supabase
-        .from('user_settings')
-        .select(
-          'perfil_fees_clave, gastos_locales_predeterminado_hnl, papeleria_predeterminada_usd, tipo_cambio_predeterminado_hnl_por_usd',
-        )
-        .maybeSingle(),
-      supabase.from('fee_profiles').select('clave').eq('es_predeterminado', true).eq('seleccionable', true).maybeSingle(),
-    ]);
-    const { data: vehiculo, error: errorVehiculo } = await supabase.from('vehicles').insert({}).select('id').single();
-    if (errorVehiculo) {
-      setCreando(false);
-      setError('No se pudo crear el vehículo.');
-      return;
-    }
-    const { data: cotizacion, error: errorCotizacion } = await supabase
-      .from('quotes')
-      .insert({
-        vehicle_id: vehiculo.id,
-        subasta: 'IAA',
-        perfil_fees_clave: ajustes?.perfil_fees_clave ?? predeterminado?.clave ?? null,
-        modo_fees: 'tabla',
-        modo_impuestos: 'desglose',
-        gastos_locales_hnl: ajustes?.gastos_locales_predeterminado_hnl ?? GASTOS_LOCALES_PREDETERMINADOS_HNL,
-        papeleria_usd: ajustes?.papeleria_predeterminada_usd ?? PAPELERIA_PREDETERMINADA_USD,
-        tipo_cambio_hnl_por_usd: ajustes?.tipo_cambio_predeterminado_hnl_por_usd ?? null,
-      })
-      .select('id')
-      .single();
+    const resultado = await crearCotizacion(null);
     setCreando(false);
-    if (errorCotizacion) {
-      setError('No se pudo crear la cotización.');
+    if ('error' in resultado) {
+      setError(resultado.error);
       return;
     }
-    irA(`#/vehiculos/${cotizacion.id as string}`);
+    irA(`#/vehiculos/${resultado.id}`);
   };
 
   return (

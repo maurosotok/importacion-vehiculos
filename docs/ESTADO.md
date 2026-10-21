@@ -1,5 +1,55 @@
 # Estado de implementación
 
+## Ronda 2026-10-20 (correcciones de interfaz y automatización): estado
+
+Sin commit, sin publicación y sin cambios en la base remota. Cotizaciones históricas no modificadas.
+
+### Implementado (código)
+- Año ≤ 2010: impuesto L10,000 y gastos locales L11,000. 2011+: impuesto vacío y gastos locales L13,557 editable. Nunca sobrescribe importes capturados; no se valida cilindrada (`src/motor/predeterminados.ts`).
+- Botón "Usar pago único (L10,000)" retirado del editor.
+- Fees automáticos desde el perfil seleccionado; "Carro + Fees" = Puja + Fees efectivos; "Volver a automático" limpia el fee manual.
+- Retirados del formulario principal: "Modo de fees", "Modalidad de puja" y texto técnico de fees. Los datos internos se conservan.
+- Aviso de VIN ya guardado (`src/motor/duplicados.ts`, `EditorCotizacion.tsx`): normaliza, excluye la cotización abierta, respuestas viejas ignoradas, no bloquea. Abrir existente es la acción principal.
+- Sede "Nashville (TN)": la fila "Nashville Copart - IAA" (US$500) queda como sugerencia pendiente (`resolverGrua` → `pendiente`), no como tarifa aplicada.
+- Migración local `supabase/migrations/20261020000100_fees_desglose_y_defaults.sql`: solo local; el estado en el proyecto remoto no se conoce.
+
+### Comandos ejecutados en esta ronda (exit code)
+| Comando | Resultado |
+|---|---|
+| `npm run typecheck` (`tsc -b`) | exit 0 |
+| `npm run lint` (`eslint .`) | exit 0, tras excluir `Python/` en `eslint.config.js` |
+| `npm test` (`vitest run`) | exit 0: 18 archivos, 206 pruebas superadas |
+| `npm run test:bd` | exit 0: 25 pruebas superadas (PostgreSQL 17 embebido, no Supabase) |
+| `npm run build` | exit 0; `dist/` generado |
+
+Errores encontrados y corregidos en esta ronda: dos pruebas de duplicados usaban un VIN de 16 caracteres (inválido para la búsqueda, por lo que devolvía vacío); se cambió el fixture a un VIN sintético de 17 caracteres. Un error de lint en `EditorCotizacion.tsx` (`String` sobre `unknown`) se corrigió con `aTextoONulo`.
+
+### Probado unitariamente
+- `predeterminados.test.ts`, `fees-sustitucion.test.ts`, `duplicados.test.ts`, `regresion-honda-cr-v-2007.test.ts` (nuevos) pasan.
+- Regresión Honda CR-V 2007 (IAA, puja 2000): partidas USD 4135, importado L132,761.19, inversión L152,761.19, utilidad L37,238.81. Se prueba a nivel motor, no en pantalla.
+
+### Probado con BD
+- `V01` (nueva): el propietario ve cotizaciones por VIN; otro usuario autenticado no ve ninguna. Usa autenticación real del harness, sin evadir RLS.
+
+### No ejecutado
+- Pruebas en navegador de esta ronda: no se ejecutaron. Se decidió no repetir Playwright en esta ejecución.
+- Verificación del esquema y catálogos en el Supabase remoto: no se hizo.
+- Publicación, workflow de GitHub Actions y commit: no se hicieron.
+
+### Datos pendientes y decisiones del usuario
+- VIN de la regresión: `JHLRE38797C00907` tiene 16 caracteres y no pasa la validación de 17. No se completó el dígito faltante.
+- L10,000 por año: `CLAUDE.md` indica que L10000 no es una regla por año. Se aplicó la instrucción expresa más reciente del usuario (≤ 2010). Confirmar si debe seguir así.
+- Nashville: confirmar si la fila "Nashville Copart - IAA" (FLORIDA, US$500) corresponde a IAA Nashville; mientras tanto queda pendiente.
+- Discrepancias Excel vs PDF en grúas (pendientes de decisión): Tampa North IAA 225 vs 265; Orlando - Copart - IAA 200 vs 225; Orlando North y South 200 vs 210; Orlando IAA - Sublot Boggy Greek 225 vs 350; Central New Jersey - IAA 165 vs 275; Richmond - Copart - IAA 270 vs 325; Richmond Doswell - IAA 350 vs 500; Tampa US41 IAA 250 vs 200; Tampa IAA 220 vs 225.
+- Denver y Webster (Colorado) tienen origen ARIZONA en el catálogo; las búsquedas de CO no las encuentran.
+- `Python/` está rastreado en git (2399 archivos, intérprete Python embebido en el repositorio). Decidir si debe quedar fuera del control de versiones. No se borró nada.
+- `Configuracion.tsx` aún muestra el ajuste `pago_unico_hnl`.
+
+### Siguientes acciones mínimas
+1. Probar en navegador el editor (año, fees, VIN duplicado, Nashville) con la autenticación real de Supabase.
+2. Decidir las discrepancias de grúas y la etiqueta de Nashville.
+3. Autorizar, si aplica, la revisión del esquema remoto para la migración `20261020000100`.
+
 ## Ronda 2026-10-20 (autocompletado del editor): cambios y verificación
 
 Implementado en código. No probado en navegador ni contra Supabase remoto.

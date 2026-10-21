@@ -175,7 +175,7 @@ export function aFormulario(vehiculo: VehiculoFila, cotizacion: CotizacionFila):
     modoFees: cotizacion.modo_fees,
     modalidadPuja: textoODefecto(cotizacion.modalidad_puja),
     pujaUsd: num(cotizacion.puja_usd),
-    feesUsd: num(cotizacion.fees_usd),
+    feesUsd: cotizacion.modo_fees === 'tabla' ? '' : num(cotizacion.fees_usd),
     carroMasFeesUsd: num(cotizacion.carro_mas_fees_usd),
     gruaUsd: num(cotizacion.grua_usd),
     barcoUsd: num(cotizacion.barco_usd),
@@ -272,9 +272,12 @@ export function construirParches(campos: Campos): ParchesFormulario {
   return { vehiculo, cotizacion, invalidos };
 }
 
+export const MODALIDAD_PREDETERMINADA = 'internet_live';
+
 export function modalidadEfectiva(campos: Campos, version: VersionFees | null): string | null {
   const capturada = campos.modalidadPuja.trim();
   if (capturada !== '') return capturada;
+  if (version?.modalidades.includes(MODALIDAD_PREDETERMINADA)) return MODALIDAD_PREDETERMINADA;
   return version && version.modalidades.length === 1 ? version.modalidades[0] ?? null : null;
 }
 

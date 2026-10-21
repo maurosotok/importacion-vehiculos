@@ -57,25 +57,36 @@ describe('comparador de envíos', () => {
 
 describe('grúas y sublotes', () => {
   const filas: FilaGrua[] = [
-    { id: 'g1', ubicacion: 'Miami, FL', zona: 'FLORIDA', montoUsd: '350' },
-    { id: 'g2', ubicacion: 'Tampa, FL', zona: 'FLORIDA', montoUsd: null },
-    { id: 'g3', ubicacion: 'Jacksonville, FL', zona: 'FLORIDA', montoUsd: '350' },
-    { id: 'g4', ubicacion: 'Sarasota, FL', zona: 'FLORIDA', montoUsd: '410' },
-    { id: 'g5', ubicacion: 'Mexico (Mérida)', zona: 'TEXAS', montoUsd: '250' },
+    { id: 'g1', ubicacion: 'Miami IAA', zona: 'FLORIDA', estadoOrigen: 'FLORIDA', montoUsd: '350' },
+    { id: 'g2', ubicacion: 'Tampa IAA', zona: 'FLORIDA', estadoOrigen: 'FLORIDA', montoUsd: null },
+    { id: 'g3', ubicacion: 'Jacksonville IAA', zona: 'FLORIDA', estadoOrigen: 'FLORIDA', montoUsd: '350' },
+    { id: 'g4', ubicacion: 'Sarasota IAA', zona: 'FLORIDA', estadoOrigen: 'FLORIDA', montoUsd: '410' },
+    { id: 'g5', ubicacion: 'Mexico (Mérida) IAA', zona: 'TEXAS', estadoOrigen: 'TEXAS', montoUsd: '250' },
   ];
 
   it('normaliza acentos, mayúsculas y espacios', () => {
     expect(normalizarTexto('  Mérida   ')).toBe('MERIDA');
   });
 
-  it('una coincidencia con importe devuelve única', () => {
+  it('una coincidencia verificada con importe devuelve única', () => {
     const r = resolverGrua(buscarGruas(filas, 'Miami', 'FLORIDA'));
     expect(r).toMatchObject({ estado: 'unica', montoUsd: '350' });
   });
 
   it('sublotes con importes distintos quedan ambiguos, sin colapsar', () => {
-    const r = resolverGrua(buscarGruas(filas, 'FL', 'FLORIDA'));
+    const conDosImportes: FilaGrua[] = [
+      { id: 'a', ubicacion: 'Miami IAA', zona: 'FLORIDA', estadoOrigen: 'FLORIDA', montoUsd: '350' },
+      { id: 'b', ubicacion: 'Miami IAA', zona: 'FLORIDA', estadoOrigen: 'FLORIDA', montoUsd: '410' },
+    ];
+    const r = resolverGrua(buscarGruas(conDosImportes, 'Miami', 'FLORIDA'));
     expect(r.estado).toBe('ambigua');
+  });
+
+  it('sin verificación IAA no hay tarifa automática, aunque haya importe', () => {
+    const sinVerificar: FilaGrua[] = [
+      { id: 'c', ubicacion: 'Sarasota - Manheim', zona: 'FLORIDA', estadoOrigen: 'FLORIDA', montoUsd: '410' },
+    ];
+    expect(resolverGrua(buscarGruas(sinVerificar, 'Sarasota', 'FLORIDA')).estado).toBe('pendiente');
   });
 
   it('una coincidencia sin importe no se trata como cero', () => {

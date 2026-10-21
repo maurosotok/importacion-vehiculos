@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', 'fuentes_privadas', 'supabase/functions', 'data', 'docs', 'prompts', 'templates'],
+    ignores: ['dist', 'node_modules', 'Python', 'fuentes_privadas', 'supabase/functions', 'data', 'docs', 'prompts', 'templates'],
   },
   {
     files: ['src/**/*.{ts,tsx}'],

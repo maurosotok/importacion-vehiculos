@@ -5,7 +5,6 @@ import {
   aFormulario,
   construirParches,
   MOTIVO_FEES,
-  modalidadEfectiva,
   resolverFees,
   snapshotFees,
   type Campos,
@@ -15,17 +14,24 @@ import {
   type VehiculoFila,
   type VersionFeesActiva,
 } from '../lib/formulario';
+import { crearCotizacion } from '../lib/nuevaCotizacion';
 import {
   avisosCambioParametros,
   calcularCotizacion,
   formatearMonto,
   valorDecimal,
-  type ModoFees,
   type Pendiente,
 } from '../motor/calculo';
 import { buscarBarcoReferencia, type MapeoTipoVehiculo, type TarifaEmbarque } from '../motor/referencias';
 import type { VersionFees } from '../motor/fees';
-import { buscarGruas, resolverGrua, zonaSugerida, type CoincidenciaGrua, type FilaGrua } from '../motor/gruas';
+import { buscarGruas, limpiarEtiquetaGrua, resolverGrua, zonaSugerida, type CoincidenciaGrua, type FilaGrua } from '../motor/gruas';
+import { buscarDuplicadosVin, type CotizacionVin } from '../motor/duplicados';
+import {
+  anioDesdeTexto,
+  GASTOS_LOCALES_PREDETERMINADOS_HNL,
+  importesPredeterminados,
+  importesSonAutomaticos,
+} from '../motor/predeterminados';
 import { ControladorVin, estadoVin, normalizarVin } from '../motor/vin';
 import { irA } from '../lib/ruta';
 
@@ -39,7 +45,7 @@ type Referencias = {
   mapeos: MapeoTipoVehiculo[];
   tarifas: TarifaEmbarque[];
   gruas: FilaGrua[];
-  pagoUnicoHnl: string | null;
+  gastosLocalesPredeterminadoHnl: string;
 };
 
 type CargaEditor = { vehiculo: VehiculoFila; cotizacion: CotizacionFila; referencias: Referencias };
@@ -68,16 +74,19 @@ const ETIQUETA_PENDIENTE: Record<Pendiente, string> = {
   precio_venta: 'Precio de venta',
 };
 
-const ETIQUETA_MODALIDAD: Record<string, string> = {
-  internet_live: 'En vivo por Internet',
-  proxy: 'Proxy',
-};
-
 const ETIQUETA_VIN: Record<ConsultaVin['estado'], string> = {
   consultando: 'Consultando datos del VIN…',
   aplicado: 'Datos del VIN revisados; solo se completaron los campos vacíos.',
   sin_datos: 'vPIC no devolvió datos para este VIN. Capture marca, modelo y año a mano.',
   error: 'No hubo respuesta de vPIC. Puede capturar los datos a mano.',
+};
+
+const RETARDO_DUPLICADOS_MS = 400;
+
+const ETIQUETA_ESTADO_COTIZACION: Record<string, string> = {
+  borrador: 'Borrador',
+  comprada: 'Comprada',
+  no_ganada: 'No ganada',
 };
 
 type FilaMapeo = { tipo_codigo: string; zona_salida: string; categoria_origen: string | null };
@@ -91,15 +100,27 @@ type FilaPerfil = {
 type FilaGruaBd = {
   clave: string;
   zona_salida: string;
-  etiqueta_origen: string | null;
+  estado_origen: string | null;
   etiqueta: string;
   monto_usd: number | string | null;
 };
-type FilaAjustes = { pago_unico_hnl: number | string | null };
+type FilaAjustes = { gastos_locales_predeterminado_hnl: number | string | null };
 type FilaVersionFees = { fee_profile_clave: string; contenido: unknown };
+type FilaDuplicadoBd = {
+  id: string;
+  estado: string;
+  referencia: string | null;
+  updated_at: string;
+  vehicles: { vin: string | null } | null;
+};
 
 function aTextoONulo(valor: unknown): string | null {
   return typeof valor === 'string' || typeof valor === 'number' ? String(valor) : null;
+}
+
+function montoNormalizado(valor: unknown, respaldo: string): string {
+  const decimal = valorDecimal(aTextoONulo(valor) ?? respaldo);
+  return decimal === null ? respaldo : decimal.toString();
 }
 
 function procedenciaMonto(fuente: string, monto: string): string {
@@ -122,8 +143,8 @@ async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' |
     supabase.from('fee_profiles').select('clave, etiqueta, estado_tabla, seleccionable').order('etiqueta'),
     supabase.from('vehicle_type_mappings').select('tipo_codigo, zona_salida, categoria_origen'),
     supabase.from('shipping_rates').select('clave, zona_salida, categoria, monto').eq('moneda', 'USD'),
-    supabase.from('towing_rates').select('clave, zona_salida, etiqueta_origen, etiqueta, monto_usd'),
-    supabase.from('user_settings').select('pago_unico_hnl').maybeSingle(),
+    supabase.from('towing_rates').select('clave, zona_salida, estado_origen, etiqueta, monto_usd'),
+    supabase.from('user_settings').select('gastos_locales_predeterminado_hnl').maybeSingle(),
     supabase.from('fee_schedule_versions').select('fee_profile_clave, contenido').eq('es_activa', true),
   ]);
   if (perfiles.error || mapeos.error || tarifas.error || gruas.error || ajustes.error || versiones.error) return 'error';
@@ -148,7 +169,10 @@ async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' |
         tablaCargada: perfilesConTabla.has(p.clave) || p.estado_tabla === 'verificada',
       })),
       versionesFees,
-      pagoUnicoHnl: aTextoONulo(filasAjustes?.pago_unico_hnl),
+      gastosLocalesPredeterminadoHnl: montoNormalizado(
+        filasAjustes?.gastos_locales_predeterminado_hnl,
+        GASTOS_LOCALES_PREDETERMINADOS_HNL,
+      ),
       mapeos: (mapeos.data as unknown as FilaMapeo[]).map((m) => ({
         tipoCodigo: m.tipo_codigo,
         zonaSalida: m.zona_salida,
@@ -162,10 +186,9 @@ async function cargarEditor(id: string): Promise<CargaEditor | 'no_encontrada' |
       })),
       gruas: (gruas.data as unknown as FilaGruaBd[]).map((g) => ({
         id: g.clave,
-        ubicacion: [g.etiqueta_origen, g.etiqueta]
-          .filter((t, indice, todas): t is string => typeof t === 'string' && t !== '' && todas.indexOf(t) === indice)
-          .join(' · '),
+        ubicacion: limpiarEtiquetaGrua(g.etiqueta),
         zona: g.zona_salida,
+        estadoOrigen: g.estado_origen,
         montoUsd: aTextoONulo(g.monto_usd),
       })),
     },
@@ -212,9 +235,9 @@ function tarifaGruaAutomatica(siguiente: Campos, gruas: FilaGrua[]): Partial<Cam
   if (siguiente.gruaFuente === 'manual') return {};
   const coincidencias: CoincidenciaGrua[] =
     siguiente.ubicacion.trim() === '' ? [] : buscarGruas(gruas, siguiente.ubicacion, siguiente.zonaSalida || null);
-  const unica = resolverGrua(coincidencias).estado === 'unica' ? coincidencias[0] : undefined;
-  if (unica && unica.montoUsd !== null) {
-    return { gruaUsd: unica.montoUsd, gruaFuente: 'referencia', gruaReferenciaClave: unica.id };
+  const resolucion = resolverGrua(coincidencias);
+  if (resolucion.estado === 'unica') {
+    return { gruaUsd: resolucion.montoUsd, gruaFuente: 'referencia', gruaReferenciaClave: resolucion.coincidencias[0]?.id ?? '' };
   }
   return siguiente.gruaFuente === 'referencia' ? { gruaUsd: '', gruaFuente: '', gruaReferenciaClave: '' } : {};
 }
@@ -234,8 +257,12 @@ function tarifaBarcoAutomatica(siguiente: Campos, referencias: Referencias): Par
   return siguiente.barcoFuente === 'referencia' ? { barcoUsd: '', barcoFuente: '', barcoReferenciaClave: '' } : {};
 }
 
-function modoFeesDesde(valor: string): ModoFees {
-  return valor === 'tabla' || valor === 'carro_mas_fees' ? valor : 'total_fees';
+function importesPorAnio(siguiente: Campos, gastosPredeterminadoHnl: string): Partial<Campos> {
+  const anio = anioDesdeTexto(siguiente.anio);
+  if (anio === null || siguiente.modoImpuestos === 'combinado') return {};
+  const actuales = { impuestoHnl: siguiente.impuestoHnl, gastosLocalesHnl: siguiente.gastosLocalesHnl };
+  if (!importesSonAutomaticos(actuales, gastosPredeterminadoHnl)) return {};
+  return { modoImpuestos: 'desglose', ...importesPredeterminados(anio, gastosPredeterminadoHnl) };
 }
 
 function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRecargar: () => void }) {
@@ -255,6 +282,13 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
   const enConflicto = useRef(false);
   const cola = useRef<Promise<void>>(Promise.resolve());
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gastosPredeterminadoHnl = referencias.gastosLocalesPredeterminadoHnl;
+  const [duplicados, setDuplicados] = useState<CotizacionVin[]>([]);
+  const [errorDuplicados, setErrorDuplicados] = useState(false);
+  const [creandoNueva, setCreandoNueva] = useState(false);
+  const [errorNueva, setErrorNueva] = useState<string | null>(null);
+  const secuenciaDuplicados = useRef(0);
+  const temporizadorDuplicados = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const ejecutar = useCallback(async () => {
     if (enConflicto.current) return;
@@ -316,7 +350,11 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
   const cambiar = useCallback(
     (parcial: Partial<Campos>) => {
       const anterior = camposRef.current;
-      const siguiente: Campos = { ...anterior, ...parcial };
+      const combinado: Campos = { ...anterior, ...parcial };
+      const siguiente: Campos = {
+        ...combinado,
+        ...(anterior.anio !== combinado.anio ? importesPorAnio(combinado, gastosPredeterminadoHnl) : {}),
+      };
       camposRef.current = siguiente;
       setAvisos(avisosCambioParametros(aEntradas(anterior), aEntradas(siguiente)));
       setCampos(siguiente);
@@ -327,7 +365,7 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
         guardarAhora();
       }, RETARDO_AUTOGUARDADO_MS);
     },
-    [guardarAhora],
+    [guardarAhora, gastosPredeterminadoHnl],
   );
 
   const consultarVin = useCallback(
@@ -356,6 +394,69 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
     },
     [controlador, cambiar],
   );
+
+  const consultarDuplicados = useCallback(
+    (texto: string) => {
+      if (temporizadorDuplicados.current) clearTimeout(temporizadorDuplicados.current);
+      const secuencia = ++secuenciaDuplicados.current;
+      temporizadorDuplicados.current = setTimeout(() => {
+        temporizadorDuplicados.current = null;
+        const vin = normalizarVin(texto);
+        if (estadoVin(vin) !== 'completo') {
+          setDuplicados([]);
+          setErrorDuplicados(false);
+          return;
+        }
+        void supabase
+          .from('quotes')
+          .select('id, estado, referencia, updated_at, vehicles!inner(vin)')
+          .eq('vehicles.vin', vin)
+          .neq('id', cotizacionId)
+          .order('updated_at', { ascending: false })
+          .limit(5)
+          .then(({ data, error: fallo }) => {
+            if (secuencia !== secuenciaDuplicados.current) return;
+            if (normalizarVin(camposRef.current.vin) !== vin) return;
+            if (fallo) {
+              setDuplicados([]);
+              setErrorDuplicados(true);
+              return;
+            }
+            const filas = (data as unknown as FilaDuplicadoBd[]).map((fila) => ({
+              id: fila.id,
+              estado: fila.estado,
+              referencia: fila.referencia,
+              updated_at: fila.updated_at,
+              vin: fila.vehicles?.vin ?? null,
+            }));
+            setErrorDuplicados(false);
+            setDuplicados(buscarDuplicadosVin(filas, vin, cotizacionId));
+          });
+      }, RETARDO_DUPLICADOS_MS);
+    },
+    [cotizacionId],
+  );
+
+  const crearNuevaDesdeVin = async () => {
+    const vin = normalizarVin(camposRef.current.vin);
+    setCreandoNueva(true);
+    setErrorNueva(null);
+    const resultado = await crearCotizacion(estadoVin(vin) === 'completo' ? vin : null);
+    setCreandoNueva(false);
+    if ('error' in resultado) {
+      setErrorNueva(resultado.error);
+      return;
+    }
+    irA(`#/vehiculos/${resultado.id}`);
+  };
+
+  useEffect(() => {
+    consultarDuplicados(camposRef.current.vin);
+    return () => {
+      secuenciaDuplicados.current += 1;
+      if (temporizadorDuplicados.current) clearTimeout(temporizadorDuplicados.current);
+    };
+  }, [consultarDuplicados]);
 
   useEffect(() => {
     const alTeclear = (evento: KeyboardEvent) => {
@@ -393,17 +494,19 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
       ? []
       : buscarGruas(referencias.gruas, campos.ubicacion, campos.zonaSalida || null);
   const resolucionGrua = resolverGrua(coincidenciasGrua);
-  const tarifaGruaUnica = resolucionGrua.estado === 'unica' ? coincidenciasGrua[0] : undefined;
+  const tarifaGruaUnica = resolucionGrua.estado === 'unica' ? resolucionGrua.coincidencias[0] : undefined;
 
-  const perfilSeleccionado = referencias.perfiles.find((p) => p.clave === campos.perfilFeesClave);
-  const pagoUnico = referencias.pagoUnicoHnl;
+  const pujaDecimal = valorDecimal(campos.pujaUsd);
+  const feeEfectivoTexto = resultado.feesUsd === null ? '' : resultado.feesUsd.toFixed(2);
+  const carroMasFeesTexto =
+    pujaDecimal === null || resultado.feesUsd === null ? '' : pujaDecimal.plus(resultado.feesUsd).toFixed(2);
   const titulo =
     [campos.marca, campos.modelo, campos.anio].map((valor) => valor.trim()).filter(Boolean).join(' ') ||
     'Vehículo sin datos';
 
-  const usarTarifaGrua = (coincidencia: CoincidenciaGrua) => {
+  const usarTarifaGrua = (coincidencia: CoincidenciaGrua, fuente: 'referencia' | 'manual') => {
     if (coincidencia.montoUsd === null) return;
-    cambiar({ gruaUsd: coincidencia.montoUsd, gruaFuente: 'referencia', gruaReferenciaClave: coincidencia.id });
+    cambiar({ gruaUsd: coincidencia.montoUsd, gruaFuente: fuente, gruaReferenciaClave: coincidencia.id });
   };
 
   const cambiarCampos = (entrada: Partial<Campos>) => {
@@ -420,9 +523,8 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
   };
 
   const cambiarPerfil = (clave: string) => {
-    const tieneTabla = versionesFees.some((v) => v.perfilClave === clave);
-    const cambiaAModoTabla = tieneTabla && camposRef.current.modoFees === 'total_fees';
-    cambiar(cambiaAModoTabla ? { perfilFeesClave: clave, modoFees: 'tabla' } : { perfilFeesClave: clave });
+    const manual = camposRef.current.modoFees === 'total_fees';
+    cambiar(manual ? { perfilFeesClave: clave } : { perfilFeesClave: clave, modoFees: 'tabla', feesUsd: '' });
   };
 
   const cambiarSubasta = (subasta: string) => {
@@ -471,12 +573,52 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                   onChange={(e) => {
                     cambiar({ vin: e.target.value });
                     consultarVin(e.target.value);
+                    consultarDuplicados(e.target.value);
                   }}
                 />
               </label>
               <div className="ancho-2 referencia">
                 {consultaVin && <small role="status">{ETIQUETA_VIN[consultaVin.estado]}</small>}
+                {errorDuplicados && <small role="status">No se pudo comprobar si el VIN ya está guardado.</small>}
               </div>
+              {duplicados[0] && (
+                <div className="ancho-2 aviso-duplicado" role="status">
+                  <p>Este vehículo ya tiene una cotización guardada.</p>
+                  <ul>
+                    {duplicados.map((duplicado) => (
+                      <li key={duplicado.id}>
+                        <a href={`#/vehiculos/${duplicado.id}`}>{duplicado.referencia?.trim() || 'Sin referencia'}</a>{' '}
+                        <small>({ETIQUETA_ESTADO_COTIZACION[duplicado.estado] ?? duplicado.estado})</small>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="acciones">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        irA(`#/vehiculos/${duplicados[0]?.id ?? ''}`);
+                      }}
+                    >
+                      Abrir cotización existente
+                    </button>
+                    <button
+                      type="button"
+                      className="secundario"
+                      disabled={creandoNueva}
+                      onClick={() => {
+                        void crearNuevaDesdeVin();
+                      }}
+                    >
+                      {creandoNueva ? 'Creando…' : 'Crear nueva cotización'}
+                    </button>
+                  </div>
+                  {errorNueva && (
+                    <p role="alert" className="error">
+                      {errorNueva}
+                    </p>
+                  )}
+                </div>
+              )}
               <label>
                 Marca
                 <input value={campos.marca} onChange={(e) => { cambiar({ marca: e.target.value }); }} />
@@ -531,7 +673,11 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
               </label>
               <label>
                 Sede o ubicación
-                <input value={campos.ubicacion} onChange={(e) => { cambiarCampos({ ubicacion: e.target.value }); }} />
+                <input
+                  value={campos.ubicacion}
+                  placeholder="Ej.: Nashville (TN)"
+                  onChange={(e) => { cambiarCampos({ ubicacion: e.target.value }); }}
+                />
               </label>
               <label>
                 Puerto de salida (zona)
@@ -570,82 +716,38 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                 />
               </label>
               <label>
-                Modo de fees
-                <select value={campos.modoFees} onChange={(e) => { cambiar({ modoFees: modoFeesDesde(e.target.value) }); }}>
-                  <option value="tabla">Automática (tabla del perfil)</option>
-                  <option value="total_fees">Fees manuales</option>
-                  <option value="carro_mas_fees">Carro + fees</option>
-                </select>
-              </label>
-              <label>
-                Fees (manual)
+                Fees
                 <input
-                  value={campos.feesUsd}
+                  value={campos.modoFees === 'total_fees' ? campos.feesUsd : feeEfectivoTexto}
                   inputMode="decimal"
-                  disabled={campos.modoFees !== 'total_fees'}
                   aria-invalid={invalidos.includes('feesUsd')}
-                  onChange={(e) => { cambiar({ feesUsd: e.target.value }); }}
+                  onChange={(e) => { cambiar({ feesUsd: e.target.value, modoFees: 'total_fees' }); }}
                 />
               </label>
               <label>
                 Carro + fees
-                <input
-                  value={campos.carroMasFeesUsd}
-                  inputMode="decimal"
-                  disabled={campos.modoFees !== 'carro_mas_fees'}
-                  aria-invalid={invalidos.includes('carroMasFeesUsd')}
-                  onChange={(e) => { cambiar({ carroMasFeesUsd: e.target.value }); }}
-                />
+                <input value={carroMasFeesTexto} readOnly />
               </label>
-              {perfilSeleccionado && !perfilSeleccionado.tablaCargada && (
-                <p className="ancho-2 nota">
-                  Este perfil no tiene tabla de tramos cargada. Capture el total de fees a mano; no se estima.
-                </p>
-              )}
-              {resolucionFees.version && (
-                <>
-                  <label>
-                    Modalidad de puja
-                    <select
-                      value={modalidadEfectiva(campos, resolucionFees.version) ?? ''}
-                      onChange={(e) => { cambiar({ modalidadPuja: e.target.value }); }}
+              <div className="ancho-2 referencia" aria-live="polite">
+                {campos.modoFees === 'total_fees' ? (
+                  <>
+                    <small>Fees manuales.</small>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        cambiar({ modoFees: 'tabla', feesUsd: '' });
+                      }}
                     >
-                      <option value="">Pendiente</option>
-                      {resolucionFees.version.modalidades.map((modalidad) => (
-                        <option key={modalidad} value={modalidad}>
-                          {ETIQUETA_MODALIDAD[modalidad] ?? modalidad}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="ancho-2 referencia" aria-live="polite">
-                    {resolucionFees.resultado.ok ? (
-                      <span>
-                        Fees por tabla ({resolucionFees.version.version}): {formatearMonto(resolucionFees.resultado.total)} USD
-                      </span>
-                    ) : (
-                      <span className="pendiente">{MOTIVO_FEES[resolucionFees.resultado.motivo]}</span>
-                    )}
-                    {campos.modoFees !== 'tabla' && (
-                      <button type="button" onClick={() => { cambiar({ modoFees: 'tabla' }); }}>
-                        Volver a tarifa automática
-                      </button>
-                    )}
-                    {resolucionFees.resultado.ok && (
-                      <details>
-                        <summary>Desglose de fees</summary>
-                        <ul>
-                          {resolucionFees.resultado.lineas.map((linea) => (
-                            <li key={linea.concepto}>
-                              {linea.concepto}: {formatearMonto(linea.monto)} USD
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                  </div>
-                </>
-              )}
+                      Volver a automático
+                    </button>
+                  </>
+                ) : (
+                  !resolucionFees.resultado.ok &&
+                  campos.perfilFeesClave !== '' && (
+                    <span className="pendiente">{MOTIVO_FEES[resolucionFees.resultado.motivo]}</span>
+                  )
+                )}
+              </div>
               <label>
                 Grúa
                 <input
@@ -661,11 +763,24 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                     <span>
                       Tarifa de grúa: {formatearMonto(valorDecimal(tarifaGruaUnica.montoUsd))} USD ({tarifaGruaUnica.ubicacion})
                     </span>
-                    {campos.gruaFuente === 'manual' && (
-                      <button type="button" onClick={() => { usarTarifaGrua(tarifaGruaUnica); }}>
+                    {campos.gruaFuente !== 'referencia' && (
+                      <button type="button" onClick={() => { usarTarifaGrua(tarifaGruaUnica, 'referencia'); }}>
                         Volver a tarifa
                       </button>
                     )}
+                  </>
+                )}
+                {resolucionGrua.estado === 'pendiente' && (
+                  <>
+                    <span className="pendiente">Hay una tarifa para esta sede que no está verificada. Confírmela si corresponde.</span>
+                    {resolucionGrua.coincidencias
+                      .filter((c) => c.montoUsd !== null)
+                      .slice(0, 8)
+                      .map((c) => (
+                        <button key={c.id} type="button" onClick={() => { usarTarifaGrua(c, 'manual'); }}>
+                          Usar {c.ubicacion}: {formatearMonto(valorDecimal(c.montoUsd))} USD
+                        </button>
+                      ))}
                   </>
                 )}
                 {resolucionGrua.estado === 'ambigua' && (
@@ -675,7 +790,7 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                       .filter((c) => c.montoUsd !== null)
                       .slice(0, 8)
                       .map((c) => (
-                        <button key={c.id} type="button" onClick={() => { usarTarifaGrua(c); }}>
+                        <button key={c.id} type="button" onClick={() => { usarTarifaGrua(c, 'manual'); }}>
                           {c.ubicacion}: {formatearMonto(valorDecimal(c.montoUsd))} USD
                         </button>
                       ))}
@@ -793,14 +908,6 @@ function FormularioCotizacion({ carga, onRecargar }: { carga: CargaEditor; onRec
                       onChange={(e) => { cambiar({ gastosLocalesHnl: e.target.value }); }}
                     />
                   </label>
-                  {pagoUnico && (
-                    <div className="ancho-2 referencia">
-                      <button type="button" onClick={() => { cambiar({ impuestoHnl: pagoUnico }); }}>
-                        Usar pago único (L {formatearMonto(valorDecimal(pagoUnico))})
-                      </button>
-                      <small>Solo se aplica al pulsar; no depende del modelo ni del año.</small>
-                    </div>
-                  )}
                 </>
               )}
             </div>

@@ -29,7 +29,7 @@
 | T02 | Cambia puja/flete/cambio | Impuesto manual permanece; nota informativa, permite guardar. |
 | T03 | Total combinado 50297.89 | Suma una sola vez sin L10000 ni locales adicionales. |
 | T04 | Impuesto manual 10000 + locales manuales 21000 | Salida 31000; solo porque se ingresaron por separado. |
-| T05 | Botón pago único | Rellena 10000 solo por acción expresa, nunca por modelo/año. |
+| T05 | Sin botón de pago único | El botón se retiró; el importe de impuesto 10000 solo aparece por año ≤ 2010 y nunca sobrescribe un importe capturado. |
 | T06 | Cambiar total/desglose | Solo suma el modo activo; no partidas ocultas ni reparto inventado. |
 | T07 | Impuesto no ingresado | Subtotal conocido y estado parcial; no "cero impuestos". |
 
@@ -50,6 +50,15 @@
 | P07 | Precio "No" o null en comparador | No gana como oferta más barata. |
 | P08 | Precio de venta faltante | Utilidad no se inventa ni se trata como venta a cero. |
 | P09 | Media de mercado | Excluye desconocidos, expone criterios y cantidad, manual editable. |
+
+## Correcciones de interfaz y automatización (ronda 2026-10-20)
+| ID | Escenario | Resultado esperado |
+|---|---|---|
+| A01 | Año ≤ 2010 y 2011 o posterior | ≤ 2010: impuesto L10,000 y gastos locales L11,000. 2011+: impuesto vacío y gastos locales L13,557 editable. No se valida cilindrada. |
+| A02 | Perfil IAA Standard Volume con puja 2000, 3500, 3750, 4000 | Fees 795, 965, 965, 1000 automáticos; "Carro + Fees" = Puja + Fees efectivos; un fee manual sustituye y "Volver a automático" restaura. |
+| A03 | VIN ya guardado en otra cotización del mismo propietario | Aviso "Este vehículo ya tiene una cotización guardada.", abrir existente como acción principal, crear nueva como secundaria; no bloquea ni sobrescribe el formulario abierto. |
+| A04 | Honda CR-V 2007, IAA, puja 2000, grúa 500, barco 825, papelería 15, TC 27.0281, reparación L20,000, venta L190,000 | Partidas USD 4135; importado L132,761.19; inversión L152,761.19; utilidad L37,238.81. |
+| A05 | Sede "Nashville (TN)" | US$500 solo como sugerencia pendiente de confirmación; no se aplica ni confirma automáticamente porque "Nashville Copart - IAA" no puede verificarse como IAA Nashville. No bloquea la cotización. |
 
 ## Datos y producción
 | ID | Escenario | Resultado esperado |

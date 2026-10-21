@@ -20,7 +20,7 @@ Estados:
 | UX03 | Pendiente UI | Sin prueba | Guardar con tarifa 2025 sin confirmación en pantalla |
 | UX04 | Parcial | Pasa (motor) `calculo.test.ts`: partida pendiente no cuenta cero | Fila "Se cotiza" en pantalla |
 | UX05 | Parcial | Pasa (motor) `vin.test.ts`: ausente/incompleto no bloquea | vPIC no conectado al formulario |
-| UX06 | Pendiente UI | Sin prueba | Aviso de VIN ya cotizado |
+| UX06 | Parcial | Pasa (motor) `duplicados.test.ts`: normaliza VIN, excluye la cotización abierta, ordena de más reciente; no busca VIN incompleto. Pasa (BD) `V01`: otro usuario no ve cotizaciones ajenas por VIN | Aviso y botones en pantalla; no probado en navegador |
 | UX07 | Pendiente UI | Sin prueba | Cálculo y guardado sin sede |
 | UX08 | Pendiente UI | Sin prueba | Marcado de campo inválido sin perder texto |
 | UX09 | Parcial | Pasa (motor) `vin.test.ts`: respuesta vieja descartada | Sin prueba de no sobrescribir edición manual |
@@ -35,7 +35,7 @@ Estados:
 | F04 | Parcial | Pasa (motor) `fees.test.ts` y `caso107.test.ts`: cortes exactos, justo debajo, redondeo del porcentaje; tabla IAA Standard Volume con vigencia 2024-11-04 (`captura_manual`; 2024-10-23 solo es el nombre del archivo) | Confirmar la transcripción con la fuente oficial; procedencia en pantalla |
 | F05 | No verificado | Sin prueba explícita | Confirmar que no se duplican componentes ni se confunde papelería |
 | F06 | Pasa (motor) | `calculo.test.ts`: carro+fees 2995 con puja 2200 da fee 795 | — |
-| F07 | Parcial | Pasa (motor) `fees.test.ts`: fee manual gana y se marca manual | Procedencia visible en pantalla; tabla oficial no cargada |
+| F07 | Parcial | Pasa (motor) `fees.test.ts` y `fees-sustitucion.test.ts`: fee manual 800 sustituye la tabla 795; al borrarlo vuelve a 795 | Procedencia visible en pantalla; tabla oficial no cargada; no probado en navegador |
 | F08 | Pasa (motor) | `calculo.test.ts`: puja mayor no deriva fee negativo y avisa | — |
 | F10 | Pasa (motor) | `caso107.test.ts`: puja 2000 reproduce fees 795 (535+110+105+25+20), carro+fees 2795, efectivo 3860, importado 166874.48, utilidad 33125.52 | Mismos valores en el editor, en navegador |
 | F11 | Pasa (motor) | `caso107.test.ts`: puja 4500, fuera de la cobertura de los cargos, devuelve `cargo_sin_cobertura`, no un total parcial. La puja 2500 sí está cubierta: tramo 610 + 110 + 105 + 25 + 20 = 870 | Fees pendientes con entrada manual en pantalla |
@@ -43,7 +43,7 @@ Estados:
 | T02 | Pasa (motor) | `calculo.test.ts`: cambiar puja conserva impuesto manual con avisos | Nota en pantalla |
 | T03 | Pasa (motor) | `calculo.test.ts`: total combinado 50297.89 se suma una vez | — |
 | T04 | Pasa (motor) | `calculo.test.ts`: 10000 + 21000 da 31000 | — |
-| T05 | Pendiente UI | Sin prueba | Botón de pago único que llena 10000 solo por acción |
+| T05 | Parcial | Código: el botón "Usar pago único (L10,000)" se retiró del editor; los importes por año los fija `predeterminados.test.ts` (2007 → 10000/11000; 2011 → vacío/13557) | Ajuste `pago_unico_hnl` aún visible en `Configuracion.tsx`; sin prueba en navegador |
 | T06 | Pasa (motor) | `reglas.test.ts`: cambiar a desglose guarda el total como referencia; no se mezclan modos | Interfaz de los dos modos |
 | T07 | Pasa (motor) | `calculo.test.ts`: impuesto no ingresado queda pendiente, nunca cero | Estado parcial en pantalla |
 
@@ -65,6 +65,15 @@ Estados:
 | P08 | Pasa (motor) | `compra.test.ts`: sin precio de venta no inventa utilidad | — |
 | P09 | Parcial | Pasa (motor) `utilidades.test.ts`: promedio solo de precios conocidos, criterios visibles | Edición manual del precio objetivo en pantalla; no hay `mercado.test.ts` propio |
 
+## Correcciones de interfaz y automatización (ronda 2026-10-20)
+| ID | Estado | Evidencia | Falta |
+|---|---|---|---|
+| A01 | Pasa (motor) | `predeterminados.test.ts`: 2007 y 2010 → 10000/11000; 2011 → vacío/13557; importes capturados no se consideran automáticos | Aplicación en pantalla no probada en navegador |
+| A02 | Pasa (motor) | `caso107.test.ts` y `fees-sustitucion.test.ts`: 795 automático, manual 800 sustituye, borrar vuelve a 795 | Pantalla "Carro + Fees" y "Volver a automático" no probadas en navegador; 3500/3750/4000 cubiertos en `caso107.test.ts` |
+| A03 | Pasa (motor + BD) | `duplicados.test.ts` (normalización, exclusión, orden); `V01`: RLS impide ver cotizaciones ajenas por VIN | Aviso y botones en navegador no probados |
+| A04 | Pasa (motor) | `regresion-honda-cr-v-2007.test.ts`: 4135 / 132761.19 / 152761.19 / 37238.81 | Mismos valores en el editor, en navegador; el VIN indicado tiene 16 caracteres |
+| A05 | Parcial | `gruas.test.ts`: Nashville queda `pendiente` con la fila "Nashville Copart - IAA" sin verificar | Confirmación en pantalla no probada; la fila necesita decisión del usuario sobre su etiqueta |
+
 ## Datos y producción
 | ID | Estado | Evidencia | Falta |
 |---|---|---|---|
@@ -82,6 +91,7 @@ Estados:
 
 ## Resumen
 - Motor y BD: los casos de dinero, fees, impuestos manuales, compras y seguridad de datos tienen pruebas que pasan.
+- Regresión Honda CR-V 2007 (IAA, puja 2000, grúa 500, barco 825): `regresion-honda-cr-v-2007.test.ts` pasa con partidas 4135, importado L132,761.19, inversión L152,761.19, utilidad L37,238.81. El VIN que se indicó (`JHLRE38797C00907`) tiene 16 caracteres y no pasa la validación de 17; no se completó ni se inventó el dígito faltante.
 - `EditorCotizacion` ya usa la tabla de fees y el motor nuevo (sin prueba en navegador). Faltan las pruebas en pantalla de UX, perfiles, impuestos, grúa y barco.
 - No cumplidos: recálculo de servidor en `marcar_comprado` (S02) y confirmación servidor de revisiones (S03).
 - Pendiente en vivo: publicación, registro público en Supabase real, URL de Pages, pruebas en navegador.

@@ -460,6 +460,23 @@ const PRUEBAS = [
       });
     },
   },
+  {
+    id: 'V01',
+    nombre: 'La búsqueda de VIN duplicado solo devuelve cotizaciones del propio usuario',
+    async ejecutar({ cliente, usuarios, datos }) {
+      const vin = '1HGCM82633A004352';
+      await cliente.query('update public.vehicles set vin = $1 where id = $2', [vin, datos.vehiculoPropio]);
+      const buscar = () =>
+        cliente.query(
+          'select q.id from public.quotes q join public.vehicles v on v.id = q.vehicle_id where v.vin = $1',
+          [vin],
+        );
+      const propietario = await comoRol(cliente, 'authenticated', usuarios.propietario, buscar);
+      assert.ok(propietario.rows.length >= 1);
+      const externo = await comoRol(cliente, 'authenticated', usuarios.externo, buscar);
+      assert.equal(externo.rows.length, 0);
+    },
+  },
 ];
 
 async function principal() {
